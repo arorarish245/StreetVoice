@@ -9,25 +9,38 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // For Signup
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(isSignup ? "Sign Up" : "Login", email, password);
-
-    // Example logic for Login
-    if (!isSignup) {
-      // Handle login logic here
-    }
-
-    // Example logic for Sign Up
+  
     if (isSignup) {
-      if (password !== confirmPassword) {
-        alert("Passwords do not match.");
-        return;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || "Signup failed");
+      } else {
+        alert("Signup successful. You can now log in.");
+        setIsSignup(false);
       }
-      // Handle signup logic here
+    } else {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+  
+      if (result?.error) {
+        alert("Login failed");
+      } else {
+        window.location.href = "/";
+      }
     }
   };
-
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#BBE1FA]">
       <div className="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg">
