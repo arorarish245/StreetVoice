@@ -3,6 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import HeroSection from "./components/HeroSection";
+import HowItWorks from "./components/HowItWorks";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -36,6 +37,7 @@ export default function Home() {
   return (
     <div>
       <HeroSection/>
+      <HowItWorks/>
       <div className="flex justify-between items-center p-6 bg-white shadow">
         <h1 className="text-2xl font-bold text-black">StreetVoice</h1>
         {isLoggedIn && (
