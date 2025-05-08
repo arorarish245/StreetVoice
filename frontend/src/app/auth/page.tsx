@@ -9,37 +9,42 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // For Signup
 
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-  
-    if (isSignup) {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-  
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.detail || "Signup failed");
-      } else {
-        alert("Signup successful. You can now log in.");
-        setIsSignup(false);
-      }
+  e.preventDefault();
+
+  if (isSignup) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.detail || "Signup failed");
     } else {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      });
-  
-      if (result?.error) {
-        alert("Login failed");
-      } else {
-        window.location.href = "/";
-      }
+      alert("Signup successful. You can now log in.");
+      setIsSignup(false);
     }
-  };
+  } else {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Login failed: " + (data.detail || "Invalid credentials"));
+    } else {
+      // Save the JWT token in local storage or state
+      localStorage.setItem("access_token", data.access_token);
+      window.location.href = "/";  // Redirect to the main page
+    }
+  }
+};
+
   
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#BBE1FA]">

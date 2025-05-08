@@ -87,6 +87,13 @@ async def login(user: UserLogin):
         "token_type": "bearer"
     }
 
+@router.post("/logout")
+async def logout():
+    """Logout the user (Invalidate server-side session)."""
+    # There is no server-side session in JWT-based authentication, so you don't need to do anything here.
+    # The client will simply remove the token from localStorage.
+    return {"msg": "User logged out successfully"}
+
 @router.get("/users")
 async def get_users():
     """Fetch all users from the database for verification."""
