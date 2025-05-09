@@ -23,28 +23,29 @@ export default function ContactUs() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    setIsSubmitting(true);
-    setStatus(null);
+  setIsSubmitting(true);
+  setStatus(null);
 
-    const response = await fetch('/api/contact', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
+  const response = await fetch('http://localhost:8000/contact', {  // 🔁 Changed from /api/contact
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formData),
+  });
 
-    if (response.ok) {
-      setStatus('Your message has been sent!');
-      setFormData({ name: '', email: '', message: '' });
-    } else {
-      setStatus('Something went wrong. Please try again.');
-    }
+  if (response.ok) {
+    setStatus('Your message has been sent!');
+    setFormData({ name: '', email: '', message: '' });
+  } else {
+    setStatus('Something went wrong. Please try again.');
+  }
 
-    setIsSubmitting(false);
-  };
+  setIsSubmitting(false);
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#BBE1FA] py-12 px-6">
