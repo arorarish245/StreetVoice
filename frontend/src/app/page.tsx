@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import HeroSection from "./components/HeroSection";
 import HowItWorks from "./components/HowItWorks";
 import WhyUseStreetVoice from "./components/WhyUseStreetVoice";
+import CTASection from "./components/CTASection";
+import FAQSection from "./components/FAQSection";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -40,6 +42,8 @@ export default function Home() {
       <HeroSection/>
       <HowItWorks/>
       <WhyUseStreetVoice/>
+      <CTASection/>
+      <FAQSection/>
       <div className="flex justify-between items-center p-6 bg-white shadow">
         <h1 className="text-2xl font-bold text-black">StreetVoice</h1>
         {isLoggedIn && (
