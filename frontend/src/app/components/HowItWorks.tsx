@@ -33,7 +33,7 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section className="py-20" style={{ backgroundColor: "#BBE1FA" }}>
+    <section id="how-it-works" className="py-20" style={{ backgroundColor: "#BBE1FA" }}>
       <div className="text-center mb-12">
         <h2 className="text-4xl font-bold" style={{ color: "#1B262C" }}>
           It's That Simple:

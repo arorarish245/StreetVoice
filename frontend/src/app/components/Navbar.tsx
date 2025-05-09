@@ -42,9 +42,9 @@ export default function Navbar() {
         {/* Navigation Links */}
         <div className="hidden md:flex space-x-8">
           <Link href="/" className="text-lg hover:text-[#BBE1FA]">Home</Link>
-          <Link href="/how-it-works" className="text-lg hover:text-[#BBE1FA]">How It Works</Link>
-          <Link href="/features" className="text-lg hover:text-[#BBE1FA]">Features</Link>
-          <Link href="/about" className="text-lg hover:text-[#BBE1FA]">About</Link>
+          <Link href="#how-it-works" className="text-lg hover:text-[#BBE1FA]">How It Works</Link>
+          <Link href="#features" className="text-lg hover:text-[#BBE1FA]">Features</Link>
+          <Link href="#faq" className="text-lg hover:text-[#BBE1FA]">FAQ</Link>
           <Link href="/contact" className="text-lg hover:text-[#BBE1FA]">Contact</Link>
         </div>
 

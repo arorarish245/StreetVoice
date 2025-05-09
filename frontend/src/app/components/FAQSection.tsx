@@ -34,7 +34,7 @@ export default function FAQSection() {
   ];
 
   return (
-    <section className="py-20 bg-[#BBE1FA]">
+    <section id='faq' className="py-20 bg-[#BBE1FA]">
       <div className="text-center mb-12">
         <h2 className="text-4xl font-bold" style={{ color: "#1B262C" }}>Frequently Asked Questions</h2>
         <p className="text-xl mt-4" style={{ color: "#0F4C75" }}>Find answers to common questions about StreetVoice.</p>

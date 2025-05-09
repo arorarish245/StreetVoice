@@ -5,7 +5,7 @@ import { FaMobileAlt, FaBolt, FaMapMarkedAlt, FaEye } from 'react-icons/fa'; // 
 
 export default function WhyUseStreetVoice() {
   return (
-    <section className="py-20" style={{ backgroundColor: "#BBE1FA" }}>
+    <section id='features' className="py-20" style={{ backgroundColor: "#BBE1FA" }}>
       <div className="text-center mb-12 px-6">
         <h2 className="text-4xl font-bold" style={{ color: "#1B262C" }}>Why Use StreetVoice?</h2>
         <p className="text-xl mt-4" style={{ color: "#0F4C75" }}>Discover the features that make StreetVoice unique.</p>
