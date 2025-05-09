@@ -37,21 +37,22 @@ export default function ReportIssue() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatus(null);
+  e.preventDefault();
+  setIsSubmitting(true);
+  setStatus(null);
 
-    const formDataToSend = new FormData();
+  const formDataToSend = new FormData();
 
-    if (formData.image) {
-      formDataToSend.append('image', formData.image);
-    }
+  if (formData.image) {
+    formDataToSend.append('image', formData.image);
+  }
 
-    formDataToSend.append('location', formData.location);
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('tags', formData.tags);
+  formDataToSend.append('location', formData.location);
+  formDataToSend.append('description', formData.description);
+  formDataToSend.append('tags', formData.tags);
 
-    const response = await fetch('/api/report-issue', {
+  try {
+    const response = await fetch('http://localhost:8000/report-issue', {
       method: 'POST',
       body: formDataToSend,
     });
@@ -67,9 +68,14 @@ export default function ReportIssue() {
     } else {
       setStatus('Something went wrong. Please try again.');
     }
+  } catch (error) {
+    console.error("Error occurred during report submission:", error);
+    setStatus('Something went wrong. Please try again.');
+  }
 
-    setIsSubmitting(false);
-  };
+  setIsSubmitting(false);
+};
+
 
   return (
     <div className="min-h-screen bg-[#BBE1FA] py-12 px-6">
