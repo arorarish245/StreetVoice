@@ -1,7 +1,5 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
 import HeroSection from "./components/HeroSection";
 import HowItWorks from "./components/HowItWorks";
 import WhyUseStreetVoice from "./components/WhyUseStreetVoice";

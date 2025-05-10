@@ -40,6 +40,7 @@ const AuthPage = () => {
     } else {
       // Save the JWT token in local storage or state
       localStorage.setItem("access_token", data.access_token);
+      document.cookie = `access_token=${data.access_token}; path=/; secure`;
       window.location.href = "/";  // Redirect to the main page
     }
   }

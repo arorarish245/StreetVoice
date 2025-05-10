@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function ReportIssue() {
   const [formData, setFormData] = useState<{
@@ -10,17 +10,21 @@ export default function ReportIssue() {
     tags: string;
   }>({
     image: null,
-    location: '',
-    description: '',
-    tags: ''
+    location: "",
+    description: "",
+    tags: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value, type } = e.target;
 
-    if (type === 'file' && (e.target as HTMLInputElement).files) {
+    if (type === "file" && (e.target as HTMLInputElement).files) {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
         setFormData((prev) => ({
@@ -42,7 +46,7 @@ export default function ReportIssue() {
     const data = await res.json();
 
     // Assuming location info is in 'formatted' field
-    return data.results?.[0]?.formatted || 'Location not found';
+    return data.results?.[0]?.formatted || "Location not found";
   };
 
   // Function to fetch current location using the browser's Geolocation API
@@ -58,64 +62,83 @@ export default function ReportIssue() {
           }));
         },
         (error) => {
-          console.error('Error getting location', error);
-          setStatus('Failed to get location.');
+          console.error("Error getting location", error);
+          setStatus("Failed to get location.");
         }
       );
     } else {
-      setStatus('Geolocation is not supported by this browser.');
+      setStatus("Geolocation is not supported by this browser.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatus(null);
+  e.preventDefault();
+  setIsSubmitting(true);
+  setStatus(null);
 
-    const formDataToSend = new FormData();
+  const token =
+    typeof document !== "undefined"
+      ? document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("access_token="))
+          ?.split("=")[1]
+      : null;
 
-    if (formData.image) {
-      formDataToSend.append('image', formData.image);
-    }
+  const formDataToSend = new FormData();
 
-    formDataToSend.append('location', formData.location);
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('tags', formData.tags);
+  if (formData.image) {
+    formDataToSend.append("image", formData.image);
+  }
 
-    try {
-      const response = await fetch('http://localhost:8000/report-issue', {
-        method: 'POST',
-        body: formDataToSend,
+  formDataToSend.append("location", formData.location);
+  formDataToSend.append("description", formData.description);
+  formDataToSend.append("tags", formData.tags);
+
+  try {
+    const response = await fetch("http://localhost:8000/report-issue", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formDataToSend,
+    });
+
+    if (response.ok) {
+      setStatus("Your issue has been reported!");
+      setFormData({
+        image: null,
+        location: "",
+        description: "",
+        tags: "",
       });
-
-      if (response.ok) {
-        setStatus('Your issue has been reported!');
-        setFormData({
-          image: null,
-          location: '',
-          description: '',
-          tags: ''
-        });
-      } else {
-        setStatus('Something went wrong. Please try again.');
-      }
-    } catch (error) {
-      console.error("Error occurred during report submission:", error);
-      setStatus('Something went wrong. Please try again.');
+    } else {
+      setStatus("Something went wrong. Please try again.");
     }
+  } catch (error) {
+    console.error("Error occurred during report submission:", error);
+    setStatus("Something went wrong. Please try again.");
+  }
 
-    setIsSubmitting(false);
-  };
+  setIsSubmitting(false);
+};
+
 
   return (
     <div className="min-h-screen bg-[#BBE1FA] py-12 px-6">
       <div className="max-w-lg mx-auto bg-white p-8 rounded-lg shadow-lg border border-[#3282B8]">
-        <h1 className="text-3xl font-extrabold text-[#1B262C] text-center mb-6">Report an Issue</h1>
+        <h1 className="text-3xl font-extrabold text-[#1B262C] text-center mb-6">
+          Report an Issue
+        </h1>
 
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
           <div className="mb-4">
-            <label htmlFor="image" className="block text-lg text-[#0F4C75] font-semibold">Upload Image</label>
+            <label
+              htmlFor="image"
+              className="block text-lg text-[#0F4C75] font-semibold"
+            >
+              Upload Image
+            </label>
             <input
               type="file"
               id="image"
@@ -129,7 +152,12 @@ export default function ReportIssue() {
 
           {/* Location */}
           <div className="mb-4">
-            <label htmlFor="location" className="block text-lg text-[#0F4C75] font-semibold">Location</label>
+            <label
+              htmlFor="location"
+              className="block text-lg text-[#0F4C75] font-semibold"
+            >
+              Location
+            </label>
             <div className="flex items-center">
               <input
                 type="text"
@@ -152,7 +180,12 @@ export default function ReportIssue() {
 
           {/* Description */}
           <div className="mb-4">
-            <label htmlFor="description" className="block text-lg text-[#0F4C75] font-semibold">Description (Optional)</label>
+            <label
+              htmlFor="description"
+              className="block text-lg text-[#0F4C75] font-semibold"
+            >
+              Description (Optional)
+            </label>
             <textarea
               id="description"
               name="description"
@@ -166,7 +199,12 @@ export default function ReportIssue() {
 
           {/* Tags Dropdown */}
           <div className="mb-4">
-            <label htmlFor="tags" className="block text-lg text-[#0F4C75] font-semibold">Tags</label>
+            <label
+              htmlFor="tags"
+              className="block text-lg text-[#0F4C75] font-semibold"
+            >
+              Tags
+            </label>
             <select
               id="tags"
               name="tags"
@@ -186,7 +224,11 @@ export default function ReportIssue() {
 
           {/* Submit Button */}
           {status && (
-            <div className={`mb-4 text-center ${status.includes('reported') ? 'text-green-500' : 'text-red-500'} font-medium`}>
+            <div
+              className={`mb-4 text-center ${
+                status.includes("reported") ? "text-green-500" : "text-red-500"
+              } font-medium`}
+            >
               {status}
             </div>
           )}
@@ -195,9 +237,13 @@ export default function ReportIssue() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-6 py-3 text-white text-lg rounded-full ${isSubmitting ? 'bg-[#1B262C] cursor-not-allowed' : 'bg-[#3282B8] hover:bg-[#0F4C75] transition duration-300'}`}
+              className={`px-6 py-3 text-white text-lg rounded-full ${
+                isSubmitting
+                  ? "bg-[#1B262C] cursor-not-allowed"
+                  : "bg-[#3282B8] hover:bg-[#0F4C75] transition duration-300"
+              }`}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Report'}
+              {isSubmitting ? "Submitting..." : "Submit Report"}
             </button>
           </div>
         </form>
