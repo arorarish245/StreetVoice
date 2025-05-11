@@ -62,25 +62,56 @@ export default function ReportHistory() {
           My Report History
         </h1>
         {status && (
-          <div className={`mb-4 text-center ${status.includes("success") ? "text-green-500" : "text-red-500"} font-medium`}>
+          <div
+            className={`mb-4 text-center ${
+              status.includes("success") ? "text-green-500" : "text-red-500"
+            } font-medium`}
+          >
             {status}
           </div>
         )}
-        <div className="space-y-6">
-          {reports.length > 0 ? (
-            reports.map((report, index) => (
-              <div key={index} className="bg-[#F1F1F1] p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold">{report.location}</h2>
-                <p className="text-sm text-gray-500">Tags: {report.tags}</p>
-                <p className="text-sm text-gray-500">Reported At: {new Date(report.reported_at).toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Status: {report.status}</p>
-                <img src={report.image_url} alt="Report" className="mt-4 rounded-lg" />
-              </div>
-            ))
-          ) : (
-            <div>No reports found.</div>
-          )}
+
+        {/* Table Header */}
+        <div className="grid grid-cols-5 gap-4 font-semibold text-[#0F4C75] mb-4">
+          <div>Problem</div>
+          <div>Tag</div>
+          <div>Location</div>
+          <div>Reporting Date</div>
+          <div>Status</div>
         </div>
+
+        {/* Display Reports */}
+        {reports.length > 0 ? (
+          reports.map((report, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-5 gap-4 p-4 bg-[#F1F1F1] rounded-lg shadow-md mb-4"
+            >
+              {/* Report Image */}
+              <div>
+                <img
+                  src={report.image_url}
+                  alt="Report"
+                  className="w-16 h-16 object-cover rounded"
+                />
+              </div>
+
+              {/* Report Tag */}
+              <div>{report.tags}</div>
+
+              {/* Report Location */}
+              <div>{report.location}</div>
+
+              {/* Report Date */}
+              <div>{new Date(report.reported_at).toLocaleDateString()}</div>
+
+              {/* Report Status */}
+              <div>{report.status}</div>
+            </div>
+          ))
+        ) : (
+          <div>No reports found.</div>
+        )}
       </div>
     </div>
   );
