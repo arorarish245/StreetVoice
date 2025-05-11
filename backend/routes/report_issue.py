@@ -56,10 +56,26 @@ async def report_issue(
             "description": description,
             "tags": tags,
             "reported_at": datetime.utcnow(),
-            "user_id": current_user_id 
+            "user_id": current_user_id,
+            "status": "submitted"  
         }
         issues_collection.insert_one(issue)
     except Exception as e:
         return {"message": f"Error saving issue to MongoDB: {str(e)}"}
 
     return {"message": "Issue reported successfully", "image_url": image_url}
+
+@router.get("/my-reports")
+def get_user_reports(current_user_email: str = Depends(get_current_user_email)):
+    try:
+        reports = list(issues_collection.find({"user_id": current_user_email}, {
+            "_id": 0,
+            "image_url": 1,
+            "location": 1,
+            "tags": 1,
+            "reported_at": 1,
+            "status": 1  
+        }))
+        return {"reports": reports}
+    except Exception as e:
+        return {"message": f"Error fetching reports: {str(e)}"}
