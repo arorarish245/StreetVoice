@@ -1,37 +1,33 @@
-from fastapi import Depends, HTTPException, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException
 from jose import JWTError, jwt
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 SECRET_KEY = os.getenv("JWT_SECRET", "your_super_secret_key")
 ALGORITHM = "HS256"
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
+from fastapi.security import OAuth2PasswordBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-# For JWT login (your own auth)
-def get_current_user_id_jwt(token: str = Depends(oauth2_scheme)) -> str:
+def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
+    # Try JWT first
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token: No user ID")
-        return user_id
+        if user_id:
+            return user_id
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        pass  # fall back to Google
 
-# For Google OAuth login
-def get_current_user_id_google(token: str = Depends(oauth2_scheme)) -> str:
+    # Try Google
     try:
-        idinfo = id_token.verify_oauth2_token(token, Request(), GOOGLE_CLIENT_ID)
-        user_id = idinfo.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid Google token: No user ID")
-        return user_id
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid Google token")
+        idinfo = id_token.verify_oauth2_token(token, GoogleRequest(), GOOGLE_CLIENT_ID)
+        email = idinfo.get("email")
+        if email:
+            return email
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=401, detail="Invalid token: Not JWT or Google")

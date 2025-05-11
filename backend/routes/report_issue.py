@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form
 from fastapi import Depends
 from config.cloudinary_config import cloudinary
 from PIL import Image
-from dependencies import get_current_user_id_jwt
+from dependencies import get_current_user_email
 from io import BytesIO
 from pymongo import MongoClient
 from datetime import datetime
@@ -31,7 +31,7 @@ async def report_issue(
     location: str = Form(...),
     description: str = Form(...),
     tags: str = Form(...),
-    current_user_id: str = Depends(get_current_user_id_jwt)
+    current_user_id: str = Depends(get_current_user_email)
 ):
     try:
         compressed_file = compress_image(image, quality=70)
