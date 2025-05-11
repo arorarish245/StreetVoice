@@ -13,20 +13,28 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, account, user }) {
-      if (account && user) {
-        token.id = user.id;
-        token.email = user.email; // Ensure the email is stored in the token
+    if (account && user) {
+      token.id = user.id;
+      token.email = user.email;
+      if (account.access_token) {
+        token.accessToken = account.access_token; 
       }
-      return token;
-    },
+      if (account.id_token) {
+        token.idToken = account.id_token; 
+      }
+    }
+    return token;
+  },
 
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-      }
-      return session;
-    },
+  async session({ session, token }) {
+    if (token) {
+      session.user.id = token.id as string;
+      session.user.email = token.email as string;
+      session.accessToken = token.accessToken as string; 
+      session.idToken = token.idToken as string; 
+    }
+    return session;
+  },
 
     async redirect({ url, baseUrl }) {
       return baseUrl;

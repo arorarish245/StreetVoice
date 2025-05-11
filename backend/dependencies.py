@@ -12,22 +12,25 @@ from fastapi.security import OAuth2PasswordBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
-    # Try JWT first
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if user_id:
-            return user_id
-    except JWTError:
-        pass  # fall back to Google
 
-    # Try Google
+    # Try Google first (it's actually more likely now)
     try:
         idinfo = id_token.verify_oauth2_token(token, GoogleRequest(), GOOGLE_CLIENT_ID)
+        # print("Google ID token payload:", idinfo)
         email = idinfo.get("email")
         if email:
             return email
-    except Exception:
-        pass
+    except Exception as e:
+        print("Google verification failed:", e)
+
+    # Fall back to custom JWT (email/password login)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # print("JWT payload:", payload)
+        user_id = payload.get("sub")
+        if user_id:
+            return user_id
+    except JWTError as e:
+        print("JWT verification failed:", e)
 
     raise HTTPException(status_code=401, detail="Invalid token: Not JWT or Google")

@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState } from "react";
+import { getSession } from 'next-auth/react';
 
 export default function ReportIssue() {
   const [formData, setFormData] = useState<{
@@ -77,13 +77,30 @@ export default function ReportIssue() {
   setIsSubmitting(true);
   setStatus(null);
 
-  const token =
-    typeof document !== "undefined"
-      ? document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("access_token="))
-          ?.split("=")[1]
-      : null;
+  let token = null;
+
+  // For email/password login (from cookies)
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
+
+  // For Google login (from NextAuth session)
+  if (!token) {
+    const session = await getSession();  
+    if (session?.idToken) {
+      token = session.idToken;  
+    }
+  }
+
+  // If no token is found, handle the case accordingly (e.g., show an error or redirect to login)
+  if (!token) {
+    setStatus("You are not authenticated. Please log in.");
+    setIsSubmitting(false);
+    return;
+  }
 
   const formDataToSend = new FormData();
 
@@ -99,7 +116,7 @@ export default function ReportIssue() {
     const response = await fetch("http://localhost:8000/report-issue", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`, // Sending the token here (whether from email/password or Google)
       },
       body: formDataToSend,
     });
@@ -122,6 +139,7 @@ export default function ReportIssue() {
 
   setIsSubmitting(false);
 };
+
 
 
   return (

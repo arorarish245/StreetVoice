@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getSession } from 'next-auth/react';
 
 type Report = {
   image_url: string;
@@ -17,37 +18,47 @@ export default function ReportHistory() {
 
   // Fetching the reports
   const fetchReports = async () => {
-    const token =
-      typeof document !== "undefined"
-        ? document.cookie
-            .split("; ")
-            .find((row) => row.startsWith("access_token="))
-            ?.split("=")[1]
-        : null;
-    
-        console.log("Token used for API request:", token);
+  let token = null;
 
-    try {
-      const response = await fetch("http://localhost:8000/my-reports", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  // For email/password login (from cookies)
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
 
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.reports); // Assuming 'reports' is the key in the response
-        setStatus("Reports fetched successfully");
-      } else {
-        setStatus("Failed to fetch reports");
-      }
-    } catch (error) {
-      console.error("Error occurred while fetching reports:", error);
-      setStatus("Something went wrong. Please try again.");
+  // For Google login (from NextAuth session)
+  if (!token) {
+    const session = await getSession(); 
+    if (session?.idToken) {
+      token = session.idToken;
     }
-    setLoading(false);
-  };
+  }
+
+
+  try {
+    const response = await fetch("http://localhost:8000/my-reports", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setReports(data.reports); 
+      // setStatus("Reports fetched successfully");
+    } else {
+      setStatus("Failed to fetch reports");
+    }
+  } catch (error) {
+    console.error("Error occurred while fetching reports:", error);
+    setStatus("Something went wrong. Please try again.");
+  }
+
+  setLoading(false);
+};
 
   useEffect(() => {
     fetchReports();

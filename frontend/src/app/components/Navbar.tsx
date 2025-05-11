@@ -26,6 +26,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     localStorage.removeItem("access_token");
+    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; secure";
     await signOut({ redirect: false });
     setIsLoggedIn(false);
     window.location.href = "/auth"; // Redirect after logout
