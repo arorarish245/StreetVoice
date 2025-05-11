@@ -15,9 +15,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, user }) {
       if (account && user) {
         token.id = user.id;
-        token.email = user.email;
+        token.email = user.email; // Ensure the email is stored in the token
       }
-      return token as JWT;
+      return token;
     },
 
     async session({ session, token }) {
@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
       }
-      return session as Session;
+      return session;
     },
 
     async redirect({ url, baseUrl }) {

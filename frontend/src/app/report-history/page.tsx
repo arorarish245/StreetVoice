@@ -24,6 +24,8 @@ export default function ReportHistory() {
             .find((row) => row.startsWith("access_token="))
             ?.split("=")[1]
         : null;
+    
+        console.log("Token used for API request:", token);
 
     try {
       const response = await fetch("http://localhost:8000/my-reports", {
