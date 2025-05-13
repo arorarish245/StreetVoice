@@ -9,6 +9,7 @@ type Report = {
   tags: string;
   reported_at: string;
   status: string;
+  _id:string;
 };
 
 export default function ReportHistory() {
@@ -60,6 +61,48 @@ export default function ReportHistory() {
   setLoading(false);
 };
 
+const handleDelete = async (reportId: string) => {
+  let token = null;
+
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
+
+  if (!token) {
+    const session = await getSession();
+    if (session?.idToken) {
+      token = session.idToken;
+    }
+  }
+
+  const confirmDelete = window.confirm("Are you sure you want to delete this report?");
+  if (!confirmDelete) return;
+
+  try {
+    const response = await fetch(`http://localhost:8000/delete-report/${reportId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      // Filter out the deleted report from the state
+      setReports((prevReports) => prevReports.filter((r) => r._id !== reportId));
+      setStatus("Report deleted successfully");
+    } else {
+      setStatus("Failed to delete report");
+    }
+  } catch (error) {
+    console.error("Error deleting report:", error);
+    setStatus("Something went wrong while deleting the report");
+  }
+};
+
+
   useEffect(() => {
     fetchReports();
   }, []);
@@ -85,7 +128,7 @@ export default function ReportHistory() {
         )}
 
         {/* Table Header */}
-        <div className="grid grid-cols-5 gap-4 font-semibold text-[#0F4C75] mb-4">
+        <div className="grid grid-cols-6 gap-4 font-semibold text-[#0F4C75] mb-4">
           <div>Problem</div>
           <div>Tag</div>
           <div>Location</div>
@@ -94,37 +137,48 @@ export default function ReportHistory() {
         </div>
 
         {/* Display Reports */}
-        {reports.length > 0 ? (
-          reports.map((report, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-5 gap-4 p-4 bg-[#F1F1F1] rounded-lg shadow-md mb-4"
-            >
-              {/* Report Image */}
-              <div>
-                <img
-                  src={report.image_url}
-                  alt="Report"
-                  className="w-16 h-16 object-cover rounded"
-                />
-              </div>
+{reports.length > 0 ? (
+  reports.map((report, index) => (
+    <div
+      key={index}
+      className="grid grid-cols-6 gap-4 p-4 bg-[#F1F1F1] rounded-lg shadow-md mb-4"
+    >
+      {/* Report Image */}
+      <div>
+        <img
+          src={report.image_url}
+          alt="Report"
+          className="w-16 h-16 object-cover rounded"
+        />
+      </div>
 
-              {/* Report Tag */}
-              <div>{report.tags}</div>
+      {/* Report Tag */}
+      <div>{report.tags}</div>
 
-              {/* Report Location */}
-              <div>{report.location}</div>
+      {/* Report Location */}
+      <div>{report.location}</div>
 
-              {/* Report Date */}
-              <div>{new Date(report.reported_at).toLocaleDateString()}</div>
+      {/* Report Date */}
+      <div>{new Date(report.reported_at).toLocaleDateString()}</div>
 
-              {/* Report Status */}
-              <div>{report.status}</div>
-            </div>
-          ))
-        ) : (
-          <div>No reports found.</div>
-        )}
+      {/* Report Status */}
+      <div>{report.status}</div>
+
+      {/* Delete Button */}
+      <div>
+        <button
+          onClick={() => handleDelete(report._id)} // Passing the report _id to the delete function
+          className="text-red-500 hover:text-red-700"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  ))
+) : (
+  <div>No reports found.</div>
+)}
+
       </div>
     </div>
   );

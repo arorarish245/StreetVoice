@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, Form
 from fastapi import Depends
 from config.cloudinary_config import cloudinary
+from bson import ObjectId
 from PIL import Image
 from dependencies import get_current_user_email
 from io import BytesIO
@@ -68,14 +69,49 @@ async def report_issue(
 @router.get("/my-reports")
 def get_user_reports(current_user_email: str = Depends(get_current_user_email)):
     try:
-        reports = list(issues_collection.find({"user_id": current_user_email}, {
-            "_id": 0,
-            "image_url": 1,
-            "location": 1,
-            "tags": 1,
-            "reported_at": 1,
-            "status": 1  
-        }))
+        raw_reports = issues_collection.find(
+            {"user_id": current_user_email},
+            {
+                "image_url": 1,
+                "location": 1,
+                "tags": 1,
+                "reported_at": 1,
+                "status": 1
+            }
+        )
+
+        reports = []
+        for report in raw_reports:
+            report["_id"] = str(report["_id"])  # Convert ObjectId to string
+            reports.append(report)
+
         return {"reports": reports}
     except Exception as e:
         return {"message": f"Error fetching reports: {str(e)}"}
+
+@router.delete("/delete-report/{report_id}")
+def delete_report(report_id: str, current_user_email: str = Depends(get_current_user_email)):
+    try:
+        print("Received request to delete report:", report_id)
+        obj_id = ObjectId(report_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid report ID format")
+
+    print("User attempting delete:", current_user_email)
+    report = issues_collection.find_one({"_id": obj_id})
+    if report:
+        print("Found report:", report)
+    else:
+        print("Report not found in DB.")
+
+    result = issues_collection.delete_one({
+        "_id": obj_id,
+        "user_id": current_user_email
+    })
+
+    print("Deleted count:", result.deleted_count)
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found or not authorized")
+
+    return {"message": "Report deleted successfully"}
