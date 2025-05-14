@@ -1,5 +1,5 @@
 // pages/auth.tsx
-"use client"
+"use client";
 import { useState } from "react";
 import { signIn } from "next-auth/react"; // Optional for Google OAuth integration
 
@@ -9,44 +9,67 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // For Signup
 
-
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (isSignup) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    if (isSignup) {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.detail || "Signup failed");
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || "Signup failed");
+      } else {
+        alert("Signup successful. You can now log in.");
+        setIsSignup(false);
+      }
     } else {
-      alert("Signup successful. You can now log in.");
-      setIsSignup(false);
-    }
-  } else {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert("Login failed: " + (data.detail || "Invalid credentials"));
-    } else {
-      // Save the JWT token in local storage or state
-      localStorage.setItem("access_token", data.access_token);
-      document.cookie = `access_token=${data.access_token}; path=/; secure`;
-      window.location.href = "/";  // Redirect to the main page
-    }
-  }
-};
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Login failed: " + (data.detail || "Invalid credentials"));
+      } else {
+        const token = data.access_token;
+        localStorage.setItem("access_token", token);
+        document.cookie = `access_token=${token}; path=/; secure`;
 
-  
+        // Check if profile is complete
+        const profileRes = await fetch(
+          `${process.env.NEXT_PUBLIC_FASTAPI_URL}/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const profile = await profileRes.json();
+
+        if (
+          !profile.full_name ||
+          !profile.role ||
+          (profile.role === "admin" &&
+            (!profile.department || !profile.location || !profile.admin_code))
+        ) {
+          window.location.href = "/profile-page";
+        } else {
+          window.location.href = "/";
+        }
+      }
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#BBE1FA]">
       <div className="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg">
@@ -73,7 +96,10 @@ const AuthPage = () => {
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-[#1B262C]">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-[#1B262C]"
+            >
               Email
             </label>
             <input
@@ -88,7 +114,10 @@ const AuthPage = () => {
           </div>
 
           <div className="mb-6">
-            <label htmlFor="password" className="block text-sm font-medium text-[#1B262C]">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-[#1B262C]"
+            >
               Password
             </label>
             <input
@@ -105,7 +134,10 @@ const AuthPage = () => {
           {/* Confirm Password field (only for Signup) */}
           {isSignup && (
             <div className="mb-6">
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-[#1B262C]">
+              <label
+                htmlFor="confirm-password"
+                className="block text-sm font-medium text-[#1B262C]"
+              >
                 Confirm Password
               </label>
               <input
