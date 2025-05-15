@@ -44,7 +44,7 @@ const AuthPage = () => {
       if (!data.profile_complete) {
         window.location.href = "/profile-page";
       } else if (data.role === "Admin") {
-        window.location.href = "/dashboard"; // Admin dashboard route
+        window.location.href = "/admin/dashboard"; // Admin dashboard route
       } else {
         window.location.href = "/main"; // User home/dashboard route
       }
@@ -97,7 +97,7 @@ const AuthPage = () => {
         if (!data.profile_complete) {
           window.location.href = "/profile-page";
         } else if (data.role === "Admin") {
-          window.location.href = "/dashboard";
+          window.location.href = "/admin/dashboard";
         } else {
           window.location.href = "/main";
         }

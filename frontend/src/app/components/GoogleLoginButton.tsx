@@ -37,7 +37,7 @@ const GoogleLoginButton = () => {
       if (!data.profile_complete) {
         window.location.href = "/profile-page";
       } else if (data.role === "Admin") {
-        window.location.href = "/dashboard";
+        window.location.href = "/admin/dashboard";
       } else {
         window.location.href = "/main";
       }
