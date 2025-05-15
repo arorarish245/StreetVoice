@@ -1,8 +1,15 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSession } from "next-auth/react";
 
-const departments = ["Sanitation", "Roadworks", "Water Supply", "Electricity", "Other"];
+const departments = [
+  "Sanitation",
+  "Roadworks",
+  "Water Supply",
+  "Electricity",
+  "Other",
+];
 
 export default function ProfileSetup() {
   const router = useRouter();
@@ -17,7 +24,9 @@ export default function ProfileSetup() {
     profilePic: null as File | null,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -31,13 +40,66 @@ export default function ProfileSetup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let token = null;
 
-    // TODO: Send formData to backend (we'll do this in next step)
+    // For email/password login (from cookies)
+    if (typeof document !== "undefined") {
+      token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+    }
 
-    if (formData.role === "Admin") {
-      router.push("/admin/dashboard");
+    // For Google login (from NextAuth session)
+    if (!token) {
+      const session = await getSession();
+      if (session?.idToken) {
+        token = session.idToken;
+      }
+    }
+
+    // Create FormData object
+    const formDataToSend = new FormData();
+
+    // Append regular fields to FormData
+    formDataToSend.append("full_name", formData.fullName);
+    formDataToSend.append("phone", formData.phone);
+    formDataToSend.append("role", formData.role);
+    formDataToSend.append("department", formData.department || "");
+    formDataToSend.append("location", formData.zone || "");
+    formDataToSend.append("admin_code", formData.adminCode || "");
+
+    // Append profile picture if it exists
+    if (formData.profilePic) {
+      formDataToSend.append("profile_pic", formData.profilePic);
+    }
+
+    for (let [key, value] of formDataToSend.entries()) {
+      console.log(`${key}:`, value);
+    }
+    // Send the request
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_FASTAPI_URL}/complete-profile`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`, // Sending the token here (whether from email/password or Google)
+        },
+        body: formDataToSend,
+      }
+    );
+
+    const data = await res.json();
+    if (res.ok) {
+      // Handle success - redirect accordingly
+      if (formData.role === "Admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/user/home");
+      }
     } else {
-      router.push("/user/home");
+      // Handle error
+      console.error(data);
     }
   };
 
@@ -47,7 +109,9 @@ export default function ProfileSetup() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg space-y-6"
       >
-        <h2 className="text-3xl font-semibold text-center text-[#1B262C] mb-6">Complete Your Profile</h2>
+        <h2 className="text-3xl font-semibold text-center text-[#1B262C] mb-6">
+          Complete Your Profile
+        </h2>
 
         {/* Profile Picture */}
         <div className="flex flex-col items-center gap-4">

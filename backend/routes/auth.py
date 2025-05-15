@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, Form, File
 from pydantic import BaseModel
 from models.user import users, pwd_context
 from datetime import datetime, timedelta
+import cloudinary
+import cloudinary.uploader
+from io import BytesIO
+from PIL import Image
 import jwt
 import os
 from dotenv import load_dotenv
@@ -15,6 +19,28 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 router = APIRouter()
+
+def compress_image(upload_file: UploadFile, quality: int = 70):
+    image = Image.open(upload_file.file)
+    image = image.convert("RGB")  # Ensure it's in RGB
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=quality)
+    buffer.seek(0)
+    return buffer
+
+# Function to upload image to Cloudinary and get the URL
+def upload_image_to_cloudinary(image: UploadFile):
+    compressed_file = compress_image(image, quality=70)
+    
+    result = cloudinary.uploader.upload(
+        compressed_file,
+        transformation=[
+            {"width": 800, "crop": "scale"},
+            {"quality": "auto"},
+            {"fetch_format": "auto"},
+        ]
+    )
+    return result["secure_url"]  # Return the secure URL of the uploaded image
 
 # ---------------- SCHEMAS ----------------
 
@@ -33,6 +59,7 @@ class CompleteProfile(BaseModel):
     department: str | None = None  # Only for admin
     location: str | None = None    # Only for admin
     admin_code: str | None = None  # Only for admin
+    profile_picture: UploadFile | None = None  # New field for profile picture
 
 # ---------------- HELPERS ----------------
 
@@ -99,18 +126,32 @@ async def get_me(email: str = Depends(get_current_user_email)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+    
 @router.put("/complete-profile")
-async def complete_profile(data: CompleteProfile, email: str = Depends(get_current_user_email)):
+async def complete_profile(
+    full_name: str = Form(...),
+    phone: str = Form(None),
+    role: str = Form(...),
+    department: str = Form(None),
+    location: str = Form(None),
+    admin_code: str = Form(None),
+    profile_picture: UploadFile = File(None),
+    email: str = Depends(get_current_user_email)
+):
     update_data = {
-        "full_name": data.full_name,
-        "phone": data.phone,
-        "role": data.role
+        "full_name": full_name,
+        "phone": phone,
+        "role": role
     }
 
-    if data.role == "admin":
-        update_data["department"] = data.department
-        update_data["location"] = data.location
-        update_data["admin_code"] = data.admin_code
+    if profile_picture:
+        image_url = upload_image_to_cloudinary(profile_picture)
+        update_data["profile_picture"] = image_url
+
+    if role == "admin":
+        update_data["department"] = department
+        update_data["location"] = location
+        update_data["admin_code"] = admin_code
     else:
         update_data["department"] = None
         update_data["location"] = None
@@ -120,8 +161,9 @@ async def complete_profile(data: CompleteProfile, email: str = Depends(get_curre
 
     if result.modified_count == 0:
         raise HTTPException(status_code=400, detail="Profile not updated")
-    
+
     return {"msg": "Profile completed successfully"}
+
 
 @router.post("/logout")
 async def logout():
