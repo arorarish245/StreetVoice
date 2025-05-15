@@ -93,9 +93,9 @@ export default function ProfileSetup() {
     if (res.ok) {
       // Handle success - redirect accordingly
       if (formData.role === "Admin") {
-        router.push("/admin/dashboard");
+        router.push("/dashboard");
       } else {
-        router.push("/user/home");
+        router.push("/");
       }
     } else {
       // Handle error

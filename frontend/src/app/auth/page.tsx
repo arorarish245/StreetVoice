@@ -1,7 +1,6 @@
-// pages/auth.tsx
 "use client";
-import { useState } from "react";
-import { signIn } from "next-auth/react"; // Optional for Google OAuth integration
+
+import { useState, useEffect } from "react";
 
 const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(true); // Default to Signup form
@@ -9,20 +8,69 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // For Signup
 
+  useEffect(() => {
+    // Check if Google API is loaded
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        callback: handleCredentialResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById("google-signin-button"),
+        { theme: "outline", size: "large" }
+      );
+    }
+  }, []);
+
+  const handleCredentialResponse = async (response: any) => {
+    const token = response.credential;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login/google`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ token }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem("access_token", data.access_token);
+      document.cookie = `access_token=${data.access_token}; path=/; secure`;
+
+      // Redirect based on profile_complete and role
+      if (!data.profile_complete) {
+        window.location.href = "/profile-page";
+      } else if (data.role === "Admin") {
+        window.location.href = "/dashboard"; // Admin dashboard route
+      } else {
+        window.location.href = "/"; // User home/dashboard route
+      }
+    } else {
+      alert("Google login failed: " + data.detail);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isSignup) {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      // Signup logic
+      if (password !== confirmPassword) {
+        alert("Passwords do not match");
+        return;
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await res.json();
+
       if (!res.ok) {
         alert(data.detail || "Signup failed");
       } else {
@@ -30,6 +78,7 @@ const AuthPage = () => {
         setIsSignup(false);
       }
     } else {
+      // Login logic
       const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,6 +86,7 @@ const AuthPage = () => {
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         alert("Login failed: " + (data.detail || "Invalid credentials"));
       } else {
@@ -44,25 +94,10 @@ const AuthPage = () => {
         localStorage.setItem("access_token", token);
         document.cookie = `access_token=${token}; path=/; secure`;
 
-        // Check if profile is complete
-        const profileRes = await fetch(
-          `${process.env.NEXT_PUBLIC_FASTAPI_URL}/me`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const profile = await profileRes.json();
-
-        if (
-          !profile.full_name ||
-          !profile.role ||
-          (profile.role === "admin" &&
-            (!profile.department || !profile.location || !profile.admin_code))
-        ) {
+        if (!data.profile_complete) {
           window.location.href = "/profile-page";
+        } else if (data.role === "Admin") {
+          window.location.href = "/dashboard";
         } else {
           window.location.href = "/";
         }
@@ -172,15 +207,8 @@ const AuthPage = () => {
           </div>
         )}
 
-        {/* Google Sign-In (Optional for OAuth) */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => signIn("google")}
-            className="w-full bg-[#DB4437] text-white py-3 rounded-lg hover:bg-[#1B262C] transition-all duration-300"
-          >
-            Sign in with Google
-          </button>
-        </div>
+        {/* Google Sign-In Button rendered by Google Identity Services */}
+        <div id="google-signin-button" className="mt-6"></div>
       </div>
     </div>
   );
