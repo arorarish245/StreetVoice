@@ -35,11 +35,11 @@ const GoogleLoginButton = () => {
 
       // Redirect based on user profile/role
       if (!data.profile_complete) {
-        window.location.href = "/complete-profile";
-      } else if (data.role === "admin") {
-        window.location.href = "/admin";
-      } else {
+        window.location.href = "/profile-page";
+      } else if (data.role === "Admin") {
         window.location.href = "/dashboard";
+      } else {
+        window.location.href = "/main";
       }
     } else {
       alert("Google login failed: " + data.detail);

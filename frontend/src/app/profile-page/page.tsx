@@ -95,7 +95,7 @@ export default function ProfileSetup() {
       if (formData.role === "Admin") {
         router.push("/dashboard");
       } else {
-        router.push("/");
+        router.push("/main");
       }
     } else {
       // Handle error

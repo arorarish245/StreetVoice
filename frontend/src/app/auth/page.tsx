@@ -46,7 +46,7 @@ const AuthPage = () => {
       } else if (data.role === "Admin") {
         window.location.href = "/dashboard"; // Admin dashboard route
       } else {
-        window.location.href = "/"; // User home/dashboard route
+        window.location.href = "/main"; // User home/dashboard route
       }
     } else {
       alert("Google login failed: " + data.detail);
@@ -99,7 +99,7 @@ const AuthPage = () => {
         } else if (data.role === "Admin") {
           window.location.href = "/dashboard";
         } else {
-          window.location.href = "/";
+          window.location.href = "/main";
         }
       }
     }
