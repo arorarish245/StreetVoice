@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
+import { MapPin } from "lucide-react";
 
 const dummyReportsData = [
   {
     id: 1,
     issue: "Overflowing Garbage",
     category: "Sanitation",
-    location: "Sector 21, Ward 5",
+    location: "Shiv Nagar Colony, Kashipur",
     status: "In Progress",
     date: "2025-05-15",
   },
@@ -98,7 +99,20 @@ export default function ReportsPage() {
               <tr key={report.id} className="border-b last:border-b-0">
                 <td className="py-3 px-4">{report.issue}</td>
                 <td className="py-3 px-4">{report.category}</td>
-                <td className="py-3 px-4">{report.location}</td>
+                <td className="py-3 px-4 flex items-center gap-2">
+                  {report.location}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      report.location
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </a>
+                </td>
+
                 <td
                   className={`py-3 px-4 font-medium ${
                     report.status === "Submitted"
