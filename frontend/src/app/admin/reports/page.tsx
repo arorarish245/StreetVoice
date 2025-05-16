@@ -35,6 +35,10 @@ export default function ReportsPage() {
     [key: number]: string;
   }>({});
 
+  // New state to control the modal visibility and track which report is selected
+  const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
+  const [currentReportId, setCurrentReportId] = useState<number | null>(null);
+
   const handleStatusChange = (id: number, newStatus: string) => {
     console.log(`Report ${id} status updated to ${newStatus}`);
 
@@ -49,6 +53,9 @@ export default function ReportsPage() {
     // Reset dropdown to default
     setSelectedStatus((prev) => ({ ...prev, [id]: "" }));
   };
+
+  // Get the report object for the currently opened suggestion modal
+  const currentReport = dummyReports.find((r) => r.id === currentReportId);
 
   return (
     <div className="p-6 bg-[#BBE1FA] min-h-screen text-[#1B262C]">
@@ -159,12 +166,61 @@ export default function ReportsPage() {
                   >
                     Save
                   </button>
+
+                  {/* Suggest button now opens the modal */}
+                  <button
+                    onClick={() => {
+                      setCurrentReportId(report.id);
+                      setSuggestionModalOpen(true);
+                    }}
+                    className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-sm"
+                  >
+                    Suggest
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Modal Popup for Suggestion */}
+      {/* Modal Popup for Suggestion */}
+      {suggestionModalOpen && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-transparent flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 relative shadow-lg">
+            {/* Close button */}
+            <button
+              onClick={() => setSuggestionModalOpen(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 font-bold text-xl"
+              aria-label="Close modal"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">Suggestion Details</h2>
+            {currentReport ? (
+              <>
+                <p className="mb-2">
+                  <strong>Issue:</strong> {currentReport.issue}
+                </p>
+                <p className="mb-2">
+                  <strong>Category:</strong> {currentReport.category}
+                </p>
+                <p className="mb-2">
+                  <strong>Location:</strong> {currentReport.location}
+                </p>
+                <p className="mb-4 text-gray-700">
+                  Here you can provide instructions or suggestions on how to
+                  handle the report and how the authority can resolve it.
+                </p>
+              </>
+            ) : (
+              <p>No report selected.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
