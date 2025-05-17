@@ -33,6 +33,10 @@ export default function ReportsPage() {
   // NEW: a state to trigger fetch after clicking search button
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  // NEW: track status changes locally per report
+  // We'll store updated statuses here keyed by report._id
+  const [updatedStatuses, setUpdatedStatuses] = useState<{ [key: string]: string }>({});
+
   useEffect(() => {
     async function fetchReports() {
       let token = null;
@@ -84,6 +88,10 @@ export default function ReportsPage() {
         }
 
         setHasMore(data.reports.length >= limit);
+        // Clear updated statuses on fresh fetch (page 1)
+        if (page === 1) {
+          setUpdatedStatuses({});
+        }
       } catch (err: any) {
         setError(err.message || "Unknown error");
       } finally {
@@ -124,6 +132,79 @@ export default function ReportsPage() {
   const loadMoreReports = () => {
     if (hasMore && !loading) {
       setPage((prev) => prev + 1);
+    }
+  };
+
+  // NEW: Handle status dropdown change per report
+  const handleStatusSelectChange = (reportId: string, newStatus: string) => {
+    setUpdatedStatuses((prev) => ({
+      ...prev,
+      [reportId]: newStatus,
+    }));
+  };
+
+  // NEW: Save button handler to update status on server
+  const handleSaveStatus = async (reportId: string) => {
+    const newStatus = updatedStatuses[reportId];
+    if (!newStatus) return;
+
+    let token = null;
+    if (typeof document !== "undefined") {
+      token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+    }
+    if (!token) {
+      const session = await getSession();
+      if (session?.idToken) {
+        token = session.idToken;
+      }
+    }
+    try {
+      const res = await fetch(`http://localhost:8000/update-report-status/${reportId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+
+      // Update reports state locally to reflect new status
+      setReports((prev) =>
+        prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
+      );
+
+      // Remove updated status from local state after save
+      setUpdatedStatuses((prev) => {
+        const copy = { ...prev };
+        delete copy[reportId];
+        return copy;
+      });
+      alert("Status updated successfully");
+    } catch (error) {
+      alert("Failed to update status");
+    }
+  };
+
+  // NEW: Suggest button handler placeholder
+  const handleSuggest = (reportId: string) => {
+    alert(`Suggest action clicked for report ${reportId}`);
+  };
+
+  // Utility: get status color class
+  const getStatusColorClass = (status: string) => {
+    switch (status) {
+      case "submitted":
+        return "bg-yellow-300 text-yellow-900";
+      case "in-progress":
+        return "bg-blue-300 text-blue-900";
+      case "resolved":
+        return "bg-green-300 text-green-900";
+      default:
+        return "bg-gray-300 text-gray-700";
     }
   };
 
@@ -184,7 +265,7 @@ export default function ReportsPage() {
           onChange={handleDateChange}
         />
 
-        {/* NEW: Search Button */}
+        {/* Search Button */}
         <button
           onClick={handleFilterSearchClick}
           className="w-full lg:w-auto px-6 py-2 bg-[#0F4C75] text-white rounded hover:bg-[#3282B8] transition"
@@ -207,56 +288,90 @@ export default function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {reports.map((report) => (
-              <tr key={report._id} className="border-b last:border-b-0">
-                <td className="py-3 px-4">
-                  {report.image_url ? (
-                    <img
-                      src={report.image_url}
-                      alt="thumbnail"
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-300 rounded flex items-center justify-center text-gray-500 text-sm">
-                      No Img
-                    </div>
-                  )}
-                </td>
-                <td className="py-3 px-4">{report.tags}</td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <span>{report.location}</span>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        report.location
+            {reports.map((report) => {
+              // Determine the displayed status (updated or original)
+              const currentStatus = updatedStatuses[report._id] ?? report.status;
+              return (
+                <tr key={report._id} className="border-b last:border-b-0">
+                  <td className="py-3 px-4">
+                    {report.image_url ? (
+                      <img
+                        src={report.image_url}
+                        alt="thumbnail"
+                        className="w-24 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      "No Image"
+                    )}
+                  </td>
+                  <td className="py-3 px-4">{report.tags}</td>
+                  <td className="py-3 px-4 flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-[#3282B8]" />
+                    {report.location}
+                  </td>
+                  {/* Status column with color background */}
+                  <td className="py-3 px-4">
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full font-semibold text-sm ${getStatusColorClass(
+                        currentStatus
                       )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:text-blue-700"
                     >
-                      <MapPin className="w-4 h-4" />
-                    </a>
-                  </div>
-                </td>
-                <td className="py-3 px-4">{report.status}</td>
-                <td className="py-3 px-4">
-                  {new Date(report.reported_at).toLocaleDateString()}
-                </td>
-                <td className="py-3 px-4">Actions</td>
-              </tr>
-            ))}
+                      {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    {new Date(report.reported_at).toLocaleDateString("en-GB")}
+                  </td>
+
+                  {/* Actions column with dropdown + Save + Suggest buttons */}
+                  <td className="py-3 px-4 flex items-center gap-2">
+                    {/* Status dropdown */}
+                    <select
+                      className="border border-gray-300 rounded px-2 py-1"
+                      value={currentStatus}
+                      onChange={(e) =>
+                        handleStatusSelectChange(report._id, e.target.value)
+                      }
+                    >
+                      <option value="submitted">Submitted</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+
+                    {/* Save button (show only if status changed) */}
+                    {updatedStatuses[report._id] && (
+                      <button
+                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition"
+                        onClick={() => handleSaveStatus(report._id)}
+                      >
+                        Save
+                      </button>
+                    )}
+
+                    {/* Suggest button */}
+                    <button
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                      onClick={() => handleSuggest(report._id)}
+                    >
+                      Suggest
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Load More Button */}
-      {hasMore && !loading && (
-        <div className="mt-6 flex justify-center">
+      {hasMore && (
+        <div className="flex justify-center mt-6">
           <button
             onClick={loadMoreReports}
+            disabled={loading}
             className="px-6 py-2 bg-[#0F4C75] text-white rounded hover:bg-[#3282B8] transition"
           >
-            Load More
+            {loading ? "Loading..." : "Load More"}
           </button>
         </div>
       )}
