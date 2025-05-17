@@ -74,6 +74,45 @@ export default function ReportsPage() {
     <div className="p-6 bg-[#BBE1FA] min-h-screen text-[#1B262C]">
       <h1 className="text-3xl font-bold mb-6">Reports</h1>
 
+      <div className="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
+
+  {/* Search Bar */}
+  <input
+    type="text"
+    placeholder="Search by location or tag..."
+    className="w-full lg:w-1/3 px-4 py-2 border border-[#3282B8] rounded focus:outline-none focus:ring-2 focus:ring-[#3282B8]"
+  />
+
+  {/* Status Filter */}
+  <select
+    className="w-full lg:w-1/5 px-4 py-2 border border-[#3282B8] rounded focus:outline-none focus:ring-2 focus:ring-[#3282B8]"
+  >
+    <option value="all">All Status</option>
+    <option value="submitted">Submitted</option>
+    <option value="in-progress">In Progress</option>
+    <option value="resolved">Resolved</option>
+  </select>
+
+  {/* Category Filter */}
+  <select
+    className="w-full lg:w-1/5 px-4 py-2 border border-[#3282B8] rounded focus:outline-none focus:ring-2 focus:ring-[#3282B8]"
+  >
+    <option value="all">All Categories</option>
+    <option value="garbage">Garbage</option>
+    <option value="road">Road</option>
+    <option value="lights">Lights</option>
+    <option value="water">Water</option>
+    <option value="others">Others</option>
+  </select>
+
+  {/* Date Filter */}
+  <input
+    type="date"
+    className="w-full lg:w-1/5 px-4 py-2 border border-[#3282B8] rounded focus:outline-none focus:ring-2 focus:ring-[#3282B8]"
+  />
+</div>
+
+
       <div className="bg-white shadow-md rounded-lg overflow-x-auto">
         <table className="min-w-full table-auto text-left">
           <thead className="bg-[#0F4C75] text-white">
