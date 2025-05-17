@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
-from fastapi import Depends
+from fastapi import Depends, Query
 from config.cloudinary_config import cloudinary
 from bson import ObjectId
 from PIL import Image
@@ -118,13 +118,19 @@ def delete_report(report_id: str, current_user_email: str = Depends(get_current_
 
 
 @router.get("/all-reports")
-def get_all_reports(current_user: dict = Depends(get_current_user)):
+def get_all_reports(
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(1, ge=1),       # Default page=1, minimum 1
+    limit: int = Query(20, ge=1, le=100)  # Default limit=20, max 100
+):
     # Check if the user is an admin
     if current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to access all reports")
 
     try:
-        raw_reports = issues_collection.find(
+        skip = (page - 1) * limit
+
+        raw_reports_cursor = issues_collection.find(
             {},
             {
                 "image_url": 1,
@@ -134,14 +140,22 @@ def get_all_reports(current_user: dict = Depends(get_current_user)):
                 "status": 1,
                 "user_id": 1
             }
-        )
+        ).sort("reported_at", -1).skip(skip).limit(limit)
 
         reports = []
-        for report in raw_reports:
+        for report in raw_reports_cursor:
             report["_id"] = str(report["_id"])  # Convert ObjectId to string
             reports.append(report)
 
-        return {"reports": reports}
+        # Optional: get total count to help frontend with pagination UI
+        total_count = issues_collection.count_documents({})
+
+        return {
+            "reports": reports,
+            "page": page,
+            "limit": limit,
+            "total_count": total_count
+        }
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
