@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Body
 from config.cloudinary_config import cloudinary
 from datetime import datetime, timedelta
 from bson import ObjectId, Regex
@@ -188,3 +188,29 @@ def get_all_reports(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@router.put("/update-report-status/{report_id}")
+def update_report_status(
+    report_id: str,
+    new_status: str = Body(..., embed=True),
+    current_user_email: str = Depends(get_current_user_email)
+):
+    try:
+        obj_id = ObjectId(report_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid report ID format")
+
+    # Find the report owned by the user
+    report = issues_collection.find_one({"_id": obj_id, "user_id": current_user_email})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found or not authorized")
+
+    update_result = issues_collection.update_one(
+        {"_id": obj_id, "user_id": current_user_email},
+        {"$set": {"status": new_status}}
+    )
+
+    if update_result.modified_count == 0:
+        return {"message": "Status was already set to this value"}
+
+    return {"message": "Report status updated successfully"}
