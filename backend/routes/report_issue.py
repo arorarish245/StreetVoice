@@ -1,9 +1,9 @@
-from fastapi import APIRouter, File, UploadFile, Form
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from fastapi import Depends
 from config.cloudinary_config import cloudinary
 from bson import ObjectId
 from PIL import Image
-from dependencies import get_current_user_email
+from dependencies import get_current_user_email, get_current_user
 from io import BytesIO
 from pymongo import MongoClient
 from datetime import datetime
@@ -115,3 +115,33 @@ def delete_report(report_id: str, current_user_email: str = Depends(get_current_
         raise HTTPException(status_code=404, detail="Report not found or not authorized")
 
     return {"message": "Report deleted successfully"}
+
+
+@router.get("/all-reports")
+def get_all_reports(current_user: dict = Depends(get_current_user)):
+    # Check if the user is an admin
+    if current_user.get("role") != "Admin":
+        raise HTTPException(status_code=403, detail="Not authorized to access all reports")
+
+    try:
+        raw_reports = issues_collection.find(
+            {},
+            {
+                "image_url": 1,
+                "location": 1,
+                "tags": 1,
+                "reported_at": 1,
+                "status": 1,
+                "user_id": 1
+            }
+        )
+
+        reports = []
+        for report in raw_reports:
+            report["_id"] = str(report["_id"])  # Convert ObjectId to string
+            reports.append(report)
+
+        return {"reports": reports}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
