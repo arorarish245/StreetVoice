@@ -1,7 +1,8 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from fastapi import Depends, Query
 from config.cloudinary_config import cloudinary
-from bson import ObjectId
+from datetime import datetime, timedelta
+from bson import ObjectId, Regex
 from PIL import Image
 from dependencies import get_current_user_email, get_current_user
 from io import BytesIO
@@ -117,32 +118,46 @@ def delete_report(report_id: str, current_user_email: str = Depends(get_current_
     return {"message": "Report deleted successfully"}
 
 
-from fastapi import Query
-from bson import Regex
-
 @router.get("/all-reports")
 def get_all_reports(
     current_user: dict = Depends(get_current_user),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    search: str = Query(None)  # Optional search query param
+    search: str = Query(None),
+    status: str = Query(None),
+    tag: str = Query(None),
+    date: str = Query(None)  # single date filter in ISO format, e.g., '2025-05-17'
 ):
     if current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to access all reports")
 
     try:
         skip = (page - 1) * limit
-
-        # Build filter query
         filter_query = {}
+
+        # Search filter
         if search:
-            # Case-insensitive regex to match tags OR location
             regex = {"$regex": search, "$options": "i"}
-            filter_query = {
-                "$or": [
-                    {"tags": regex},
-                    {"location": regex}
-                ]
+            filter_query["$or"] = [
+                {"tags": regex},
+                {"location": regex}
+            ]
+
+        # Status filter
+        if status and status.lower() != "all":
+            filter_query["status"] = status
+
+        # Tag filter
+        if tag and tag.lower() != "all":
+            filter_query["tags"] = {"$regex": tag, "$options": "i"}
+
+        # Single date filter (fetch reports where reported_at is on this date)
+        if date:
+            date_obj = datetime.fromisoformat(date)
+            next_day = date_obj + timedelta(days=1)
+            filter_query["reported_at"] = {
+                "$gte": date_obj,
+                "$lt": next_day
             }
 
         raw_reports_cursor = issues_collection.find(
