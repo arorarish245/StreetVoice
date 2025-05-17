@@ -117,21 +117,36 @@ def delete_report(report_id: str, current_user_email: str = Depends(get_current_
     return {"message": "Report deleted successfully"}
 
 
+from fastapi import Query
+from bson import Regex
+
 @router.get("/all-reports")
 def get_all_reports(
     current_user: dict = Depends(get_current_user),
-    page: int = Query(1, ge=1),       # Default page=1, minimum 1
-    limit: int = Query(20, ge=1, le=100)  # Default limit=20, max 100
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    search: str = Query(None)  # Optional search query param
 ):
-    # Check if the user is an admin
     if current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to access all reports")
 
     try:
         skip = (page - 1) * limit
 
+        # Build filter query
+        filter_query = {}
+        if search:
+            # Case-insensitive regex to match tags OR location
+            regex = {"$regex": search, "$options": "i"}
+            filter_query = {
+                "$or": [
+                    {"tags": regex},
+                    {"location": regex}
+                ]
+            }
+
         raw_reports_cursor = issues_collection.find(
-            {},
+            filter_query,
             {
                 "image_url": 1,
                 "location": 1,
@@ -144,11 +159,10 @@ def get_all_reports(
 
         reports = []
         for report in raw_reports_cursor:
-            report["_id"] = str(report["_id"])  # Convert ObjectId to string
+            report["_id"] = str(report["_id"])
             reports.append(report)
 
-        # Optional: get total count to help frontend with pagination UI
-        total_count = issues_collection.count_documents({})
+        total_count = issues_collection.count_documents(filter_query)
 
         return {
             "reports": reports,
@@ -156,6 +170,6 @@ def get_all_reports(
             "limit": limit,
             "total_count": total_count
         }
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
