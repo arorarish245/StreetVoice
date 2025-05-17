@@ -145,49 +145,47 @@ export default function ReportsPage() {
 
   // NEW: Save button handler to update status on server
   const handleSaveStatus = async (reportId: string) => {
-    const newStatus = updatedStatuses[reportId];
-    if (!newStatus) return;
+  const newStatus = updatedStatuses[reportId];
+  if (!newStatus) return;
 
-    let token = null;
-    if (typeof document !== "undefined") {
-      token = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("access_token="))
-        ?.split("=")[1];
+  let token = null;
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
+  if (!token) {
+    const session = await getSession();
+    if (session?.idToken) {
+      token = session.idToken;
     }
-    if (!token) {
-      const session = await getSession();
-      if (session?.idToken) {
-        token = session.idToken;
-      }
-    }
-    try {
-      const res = await fetch(`http://localhost:8000/update-report-status/${reportId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error("Failed to update status");
+  }
+  try {
+    const res = await fetch(`http://localhost:8000/update-report-status/${reportId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ new_status: newStatus }),  // <-- changed here
+    });
+    if (!res.ok) throw new Error("Failed to update status");
 
-      // Update reports state locally to reflect new status
-      setReports((prev) =>
-        prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
-      );
+    setReports((prev) =>
+      prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
+    );
 
-      // Remove updated status from local state after save
-      setUpdatedStatuses((prev) => {
-        const copy = { ...prev };
-        delete copy[reportId];
-        return copy;
-      });
-      alert("Status updated successfully");
-    } catch (error) {
-      alert("Failed to update status");
-    }
-  };
+    setUpdatedStatuses((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+    alert("Status updated successfully");
+  } catch (error) {
+    alert("Failed to update status");
+  }
+};
 
   // NEW: Suggest button handler placeholder
   const handleSuggest = (reportId: string) => {

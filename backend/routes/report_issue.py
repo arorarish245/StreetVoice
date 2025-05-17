@@ -196,17 +196,22 @@ def update_report_status(
     current_user_email: str = Depends(get_current_user_email)
 ):
     try:
+        # print(f"Received report_id: {report_id}")
+        # print(f"Current user email: {current_user_email}")
         obj_id = ObjectId(report_id)
+        # print(f"Converted to ObjectId: {obj_id}")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid report ID format")
 
-    # Find the report owned by the user
-    report = issues_collection.find_one({"_id": obj_id, "user_id": current_user_email})
+    # Find the report without checking user_id (admin access)
+    report = issues_collection.find_one({"_id": obj_id})
+    # print(f"Found report: {report}")
+
     if not report:
-        raise HTTPException(status_code=404, detail="Report not found or not authorized")
+        raise HTTPException(status_code=404, detail="Report not found")
 
     update_result = issues_collection.update_one(
-        {"_id": obj_id, "user_id": current_user_email},
+        {"_id": obj_id},
         {"$set": {"status": new_status}}
     )
 
