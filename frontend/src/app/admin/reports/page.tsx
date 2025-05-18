@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { MapPin, Search } from "lucide-react";
 import { getSession } from "next-auth/react";
+import ReactMarkdown from "react-markdown";
 
 interface Report {
   _id: string;
@@ -11,6 +12,7 @@ interface Report {
   reported_at: string;
   status: string;
   user_id: string;
+  description: string;
 }
 
 export default function ReportsPage() {
@@ -38,6 +40,13 @@ export default function ReportsPage() {
   const [updatedStatuses, setUpdatedStatuses] = useState<{
     [key: string]: string;
   }>({});
+
+  const [showModal, setShowModal] = useState(false);
+  const [suggestionText, setSuggestionText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchReports() {
@@ -193,9 +202,60 @@ export default function ReportsPage() {
   };
 
   // NEW: Suggest button handler placeholder
-  const handleSuggest = (reportId: string) => {
-    alert(`Suggest action clicked for report ${reportId}`);
-  };
+  const handleSuggest = async (report: Report) => {
+  setShowModal(true); // Show modal immediately
+  setIsLoading(true); // Show loading initially
+
+  let token = null;
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
+  if (!token) {
+    const session = await getSession();
+    if (session?.idToken) {
+      token = session.idToken;
+    }
+  }
+
+  if (!token) {
+    alert("You must be logged in to get suggestions");
+    setShowModal(false); // Hide modal on failure
+    setIsLoading(false);
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:8000/suggestion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tag: report.tags,
+        location: report.location,
+        description: report.description,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.detail || "Failed to get suggestion");
+    }
+
+    const data = await response.json();
+    setSuggestionText(data.suggestion);
+  } catch (error: any) {
+    alert(`Error: ${error.message}`);
+    setSuggestionText("Failed to load suggestion.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // Utility: get status color class
   const getStatusColorClass = (status: string) => {
@@ -211,7 +271,35 @@ export default function ReportsPage() {
     }
   };
 
-  if (loading && page === 1) return <div>Loading reports...</div>;
+  if (loading && page === 1)
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl px-6 py-4 shadow-lg flex items-center space-x-3">
+        <svg
+          className="animate-spin h-5 w-5 text-teal-700"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          />
+        </svg>
+        <span className="text-gray-700 text-base">Loading reports...</span>
+      </div>
+    </div>
+  );
+
   if (error) return <div className="text-red-600">Error: {error}</div>;
 
   return (
@@ -304,12 +392,14 @@ export default function ReportsPage() {
                       <img
                         src={report.image_url}
                         alt="thumbnail"
-                        className="w-24 h-16 object-cover rounded mx-auto"
+                        className="w-24 h-16 object-cover rounded mx-auto cursor-pointer"
+                        onClick={() => setModalImage(report.image_url)}
                       />
                     ) : (
                       "No Image"
                     )}
                   </td>
+
                   <td className="py-3 px-4 align-middle">{report.tags}</td>
                   <td className="py-3 px-4 align-middle">
                     <div className="flex items-center gap-1 justify-center">
@@ -355,8 +445,8 @@ export default function ReportsPage() {
                       )}
 
                       <button
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                        onClick={() => handleSuggest(report._id)}
+                        onClick={() => handleSuggest(report)}
+                        className="mt-2 px-4 py-2 bg-[#0F4C75] text-white rounded-lg shadow hover:bg-teal-700 transition duration-200"
                       >
                         Suggest
                       </button>
@@ -381,6 +471,90 @@ export default function ReportsPage() {
           </button>
         </div>
       )}
+
+      {/* Modal for suggestion result */}
+      {showModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+    <div className="bg-white w-full max-w-md max-h-[80vh] rounded-xl shadow-lg p-6 overflow-y-auto relative">
+      <button
+        className="absolute top-2 right-2 text-gray-500 text-3xl hover:text-gray-800"
+        onClick={() => {
+          setShowModal(false);
+          setSuggestionText("");
+        }}
+      >
+        ×
+      </button>
+
+      <h2 className="text-xl font-semibold text-teal-700 mb-4">Suggestion</h2>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center text-gray-500 py-10">
+          <svg
+            className="animate-spin h-5 w-5 mr-2 text-teal-700"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          Loading suggestion...
+        </div>
+      ) : (
+        <ReactMarkdown
+          components={{
+            h2: ({ node, ...props }) => (
+              <h2 className="text-lg font-semibold my-2" {...props} />
+            ),
+            p: ({ node, ...props }) => (
+              <p className="text-gray-700 mb-2" {...props} />
+            ),
+            ul: ({ node, ...props }) => (
+              <ul className="list-disc pl-5 mb-2" {...props} />
+            ),
+            li: ({ node, ...props }) => (
+              <li className="mb-1" {...props} />
+            ),
+          }}
+        >
+          {suggestionText}
+        </ReactMarkdown>
+      )}
+    </div>
+  </div>
+)}
+
+
+      {modalImage && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+    <div className="relative">
+      <button
+        className="absolute top-2 right-2 text-white text-3xl font-bold"
+        onClick={() => setModalImage(null)}
+      >
+        ×
+      </button>
+      <img
+        src={modalImage}
+        alt="enlarged"
+        className="max-w-[100vw] max-h-[90vh] rounded shadow-lg"
+      />
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

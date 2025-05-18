@@ -168,7 +168,8 @@ def get_all_reports(
                 "tags": 1,
                 "reported_at": 1,
                 "status": 1,
-                "user_id": 1
+                "user_id": 1,
+                "description":1
             }
         ).sort("reported_at", -1).skip(skip).limit(limit)
 
