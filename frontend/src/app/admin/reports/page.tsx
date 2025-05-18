@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { MapPin, Search } from "lucide-react";
 import { getSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
+import Modal from "@/app/components/Modal";
 
 interface Report {
   _id: string;
@@ -45,8 +46,14 @@ export default function ReportsPage() {
   const [suggestionText, setSuggestionText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-
   const [modalImage, setModalImage] = useState<string | null>(null);
+
+  const [modalInfo, setModalInfo] = useState({
+    show: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   useEffect(() => {
     async function fetchReports() {
@@ -173,7 +180,12 @@ export default function ReportsPage() {
     }
   }
   if (!token) {
-    alert("You must be logged in to update status");
+    setModalInfo({
+      show: true,
+      title: "Authentication Required",
+      message: "You must be logged in to update status.",
+      type: "error",
+    });
     return;
   }
 
@@ -195,9 +207,21 @@ export default function ReportsPage() {
     if (!res.ok) {
       // If backend sends 403 for unauthorized dept
       if (res.status === 403) {
-        alert(data.detail || "You are not authorized to update reports of this category");
+        setModalInfo({
+          show: true,
+          title: "Access Denied",
+          message:
+            data.detail ||
+            "You are not authorized to update reports of this category.",
+          type: "error",
+        });
       } else {
-        alert(data.detail || "Failed to update status");
+        setModalInfo({
+          show: true,
+          title: "Update Failed",
+          message: data.detail || "Failed to update status.",
+          type: "error",
+        });
       }
       return;
     }
@@ -214,9 +238,19 @@ export default function ReportsPage() {
       return copy;
     });
 
-    alert(data.message || "Status updated successfully");
+    setModalInfo({
+      show: true,
+      title: "Success",
+      message: data.message || "Status updated successfully.",
+      type: "success",
+    });
   } catch (error) {
-    alert("Failed to update status");
+    setModalInfo({
+      show: true,
+      title: "Network Error",
+      message: "Failed to update status. Please try again later.",
+      type: "error",
+    });
   }
 };
 
@@ -241,7 +275,12 @@ export default function ReportsPage() {
   }
 
   if (!token) {
-    alert("You must be logged in to get suggestions");
+    setModalInfo({
+      show: true,
+      title: "Authentication Required",
+      message: "You must be logged in to get suggestions.",
+      type: "error",
+    });
     setShowModal(false); // Hide modal on failure
     setIsLoading(false);
     return;
@@ -269,13 +308,17 @@ export default function ReportsPage() {
     const data = await response.json();
     setSuggestionText(data.suggestion);
   } catch (error: any) {
-    alert(`Error: ${error.message}`);
+    setModalInfo({
+      show: true,
+      title: "Error",
+      message: error.message || "Failed to load suggestion.",
+      type: "error",
+    });
     setSuggestionText("Failed to load suggestion.");
   } finally {
     setIsLoading(false);
   }
 };
-
 
   // Utility: get status color class
   const getStatusColorClass = (status: string) => {
@@ -292,33 +335,33 @@ export default function ReportsPage() {
   };
 
   if (loading && page === 1)
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl px-6 py-4 shadow-lg flex items-center space-x-3">
-        <svg
-          className="animate-spin h-5 w-5 text-teal-700"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
-        </svg>
-        <span className="text-gray-700 text-base">Loading reports...</span>
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+        <div className="bg-white rounded-xl px-6 py-4 shadow-lg flex items-center space-x-3">
+          <svg
+            className="animate-spin h-5 w-5 text-teal-700"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            />
+          </svg>
+          <span className="text-gray-700 text-base">Loading reports...</span>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   if (error) return <div className="text-red-600">Error: {error}</div>;
 
@@ -494,87 +537,95 @@ export default function ReportsPage() {
 
       {/* Modal for suggestion result */}
       {showModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
-    <div className="bg-white w-full max-w-md max-h-[80vh] rounded-xl shadow-lg p-6 overflow-y-auto relative">
-      <button
-        className="absolute top-2 right-2 text-gray-500 text-3xl hover:text-gray-800"
-        onClick={() => {
-          setShowModal(false);
-          setSuggestionText("");
-        }}
-      >
-        ×
-      </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md max-h-[80vh] rounded-xl shadow-lg p-6 overflow-y-auto relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 text-3xl hover:text-gray-800"
+              onClick={() => {
+                setShowModal(false);
+                setSuggestionText("");
+              }}
+            >
+              ×
+            </button>
 
-      <h2 className="text-xl font-semibold text-teal-700 mb-4">Suggestion</h2>
+            <h2 className="text-xl font-semibold text-teal-700 mb-4">
+              Suggestion
+            </h2>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center text-gray-500 py-10">
-          <svg
-            className="animate-spin h-5 w-5 mr-2 text-teal-700"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            ></path>
-          </svg>
-          Loading suggestion...
+            {isLoading ? (
+              <div className="flex items-center justify-center text-gray-500 py-10">
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-teal-700"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+                Loading suggestion...
+              </div>
+            ) : (
+              <ReactMarkdown
+                components={{
+                  h2: ({ node, ...props }) => (
+                    <h2 className="text-lg font-semibold my-2" {...props} />
+                  ),
+                  p: ({ node, ...props }) => (
+                    <p className="text-gray-700 mb-2" {...props} />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul className="list-disc pl-5 mb-2" {...props} />
+                  ),
+                  li: ({ node, ...props }) => (
+                    <li className="mb-1" {...props} />
+                  ),
+                }}
+              >
+                {suggestionText}
+              </ReactMarkdown>
+            )}
+          </div>
         </div>
-      ) : (
-        <ReactMarkdown
-          components={{
-            h2: ({ node, ...props }) => (
-              <h2 className="text-lg font-semibold my-2" {...props} />
-            ),
-            p: ({ node, ...props }) => (
-              <p className="text-gray-700 mb-2" {...props} />
-            ),
-            ul: ({ node, ...props }) => (
-              <ul className="list-disc pl-5 mb-2" {...props} />
-            ),
-            li: ({ node, ...props }) => (
-              <li className="mb-1" {...props} />
-            ),
-          }}
-        >
-          {suggestionText}
-        </ReactMarkdown>
       )}
-    </div>
-  </div>
-)}
-
 
       {modalImage && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
-    <div className="relative">
-      <button
-        className="absolute top-2 right-2 text-white text-3xl font-bold"
-        onClick={() => setModalImage(null)}
-      >
-        ×
-      </button>
-      <img
-        src={modalImage}
-        alt="enlarged"
-        className="max-w-[100vw] max-h-[90vh] rounded shadow-lg"
-      />
-    </div>
-  </div>
-)}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
+          <div className="relative">
+            <button
+              className="absolute top-2 right-2 text-white text-3xl font-bold"
+              onClick={() => setModalImage(null)}
+            >
+              ×
+            </button>
+            <img
+              src={modalImage}
+              alt="enlarged"
+              className="max-w-[100vw] max-h-[90vh] rounded shadow-lg"
+            />
+          </div>
+        </div>
+      )}
 
+      <Modal
+        show={modalInfo.show}
+        onClose={() => setModalInfo({ ...modalInfo, show: false })}
+        title={modalInfo.title}
+        message={modalInfo.message}
+        type={modalInfo.type as "error" | "success" | "info"}
+      />
     </div>
   );
 }

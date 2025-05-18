@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Modal from "../components/Modal";
 
 const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(true); // Default to Signup form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // For Signup
+
+  const [modalInfo, setModalInfo] = useState({
+    show: false,
+    title: "",
+    message: "",
+    type: "info", // or "error" or "success"
+  });
 
   useEffect(() => {
     // Check if Google API is loaded
@@ -26,13 +34,16 @@ const AuthPage = () => {
   const handleCredentialResponse = async (response: any) => {
     const token = response.credential;
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/login/google`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ token }),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_FASTAPI_URL}/login/google`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ token }),
+      }
+    );
 
     const data = await res.json();
 
@@ -49,7 +60,12 @@ const AuthPage = () => {
         window.location.href = "/main"; // User home/dashboard route
       }
     } else {
-      alert("Google login failed: " + data.detail);
+      setModalInfo({
+        show: true,
+        title: "Login Failed",
+        message: data.detail || "Google login failed.",
+        type: "error",
+      });
     }
   };
 
@@ -59,22 +75,40 @@ const AuthPage = () => {
     if (isSignup) {
       // Signup logic
       if (password !== confirmPassword) {
-        alert("Passwords do not match");
+        setModalInfo({
+          show: true,
+          title: "Password Mismatch",
+          message: "Passwords do not match",
+          type: "error",
+        });
         return;
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_FASTAPI_URL}/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.detail || "Signup failed");
+        setModalInfo({
+          show: true,
+          title: "Signup Failed",
+          message: data.detail || "Signup failed",
+          type: "error",
+        });
       } else {
-        alert("Signup successful. You can now log in.");
+        setModalInfo({
+          show: true,
+          title: "Signup Successful",
+          message: "Signup successful. You can now log in.",
+          type: "success",
+        });
         setIsSignup(false);
       }
     } else {
@@ -88,7 +122,12 @@ const AuthPage = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        alert("Login failed: " + (data.detail || "Invalid credentials"));
+        setModalInfo({
+          show: true,
+          title: "Login Failed",
+          message: data.detail || "Invalid credentials",
+          type: "error",
+        });
       } else {
         const token = data.access_token;
         localStorage.setItem("access_token", token);
@@ -210,6 +249,14 @@ const AuthPage = () => {
         {/* Google Sign-In Button rendered by Google Identity Services */}
         <div id="google-signin-button" className="mt-6"></div>
       </div>
+
+      <Modal
+        show={modalInfo.show}
+        onClose={() => setModalInfo({ ...modalInfo, show: false })}
+        title={modalInfo.title}
+        message={modalInfo.message}
+        type={modalInfo.type as "error" | "success" | "info"}
+      />
     </div>
   );
 };
