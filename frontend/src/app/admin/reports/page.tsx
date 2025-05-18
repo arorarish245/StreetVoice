@@ -163,162 +163,161 @@ export default function ReportsPage() {
 
   // NEW: Save button handler to update status on server
   const handleSaveStatus = async (reportId: string) => {
-  const newStatus = updatedStatuses[reportId];
-  if (!newStatus) return;
+    const newStatus = updatedStatuses[reportId];
+    if (!newStatus) return;
 
-  let token = null;
-  if (typeof document !== "undefined") {
-    token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("access_token="))
-      ?.split("=")[1];
-  }
-  if (!token) {
-    const session = await getSession();
-    if (session?.idToken) {
-      token = session.idToken;
+    let token = null;
+    if (typeof document !== "undefined") {
+      token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
     }
-  }
-  if (!token) {
-    setModalInfo({
-      show: true,
-      title: "Authentication Required",
-      message: "You must be logged in to update status.",
-      type: "error",
-    });
-    return;
-  }
+    if (!token) {
+      const session = await getSession();
+      if (session?.idToken) {
+        token = session.idToken;
+      }
+    }
+    if (!token) {
+      setModalInfo({
+        show: true,
+        title: "Authentication Required",
+        message: "You must be logged in to update status.",
+        type: "error",
+      });
+      return;
+    }
 
-  try {
-    const res = await fetch(
-      `http://localhost:8000/update-report-status/${reportId}`,
-      {
-        method: "PUT",
+    try {
+      const res = await fetch(
+        `http://localhost:8000/update-report-status/${reportId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ new_status: newStatus }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // If backend sends 403 for unauthorized dept
+        if (res.status === 403) {
+          setModalInfo({
+            show: true,
+            title: "Access Denied",
+            message:
+              data.detail ||
+              "You are not authorized to update reports of this category.",
+            type: "error",
+          });
+        } else {
+          setModalInfo({
+            show: true,
+            title: "Update Failed",
+            message: data.detail || "Failed to update status.",
+            type: "error",
+          });
+        }
+        return;
+      }
+
+      // Update local state with new status
+      setReports((prev) =>
+        prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
+      );
+
+      // Clear the updated status for that report
+      setUpdatedStatuses((prev) => {
+        const copy = { ...prev };
+        delete copy[reportId];
+        return copy;
+      });
+
+      setModalInfo({
+        show: true,
+        title: "Success",
+        message: data.message || "Status updated successfully.",
+        type: "success",
+      });
+    } catch (error) {
+      setModalInfo({
+        show: true,
+        title: "Network Error",
+        message: "Failed to update status. Please try again later.",
+        type: "error",
+      });
+    }
+  };
+
+  // NEW: Suggest button handler placeholder
+  const handleSuggest = async (report: Report) => {
+    setShowModal(true); // Show modal immediately
+    setIsLoading(true); // Show loading initially
+
+    let token = null;
+    if (typeof document !== "undefined") {
+      token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+    }
+    if (!token) {
+      const session = await getSession();
+      if (session?.idToken) {
+        token = session.idToken;
+      }
+    }
+
+    if (!token) {
+      setModalInfo({
+        show: true,
+        title: "Authentication Required",
+        message: "You must be logged in to get suggestions.",
+        type: "error",
+      });
+      setShowModal(false); // Hide modal on failure
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/suggestion", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ new_status: newStatus }),
+        body: JSON.stringify({
+          tag: report.tags,
+          location: report.location,
+          description: report.description,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || "Failed to get suggestion");
       }
-    );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      // If backend sends 403 for unauthorized dept
-      if (res.status === 403) {
-        setModalInfo({
-          show: true,
-          title: "Access Denied",
-          message:
-            data.detail ||
-            "You are not authorized to update reports of this category.",
-          type: "error",
-        });
-      } else {
-        setModalInfo({
-          show: true,
-          title: "Update Failed",
-          message: data.detail || "Failed to update status.",
-          type: "error",
-        });
-      }
-      return;
+      const data = await response.json();
+      setSuggestionText(data.suggestion);
+    } catch (error: any) {
+      setModalInfo({
+        show: true,
+        title: "Error",
+        message: error.message || "Failed to load suggestion.",
+        type: "error",
+      });
+      setSuggestionText("Failed to load suggestion.");
+    } finally {
+      setIsLoading(false);
     }
-
-    // Update local state with new status
-    setReports((prev) =>
-      prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
-    );
-
-    // Clear the updated status for that report
-    setUpdatedStatuses((prev) => {
-      const copy = { ...prev };
-      delete copy[reportId];
-      return copy;
-    });
-
-    setModalInfo({
-      show: true,
-      title: "Success",
-      message: data.message || "Status updated successfully.",
-      type: "success",
-    });
-  } catch (error) {
-    setModalInfo({
-      show: true,
-      title: "Network Error",
-      message: "Failed to update status. Please try again later.",
-      type: "error",
-    });
-  }
-};
-
-
-  // NEW: Suggest button handler placeholder
-  const handleSuggest = async (report: Report) => {
-  setShowModal(true); // Show modal immediately
-  setIsLoading(true); // Show loading initially
-
-  let token = null;
-  if (typeof document !== "undefined") {
-    token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("access_token="))
-      ?.split("=")[1];
-  }
-  if (!token) {
-    const session = await getSession();
-    if (session?.idToken) {
-      token = session.idToken;
-    }
-  }
-
-  if (!token) {
-    setModalInfo({
-      show: true,
-      title: "Authentication Required",
-      message: "You must be logged in to get suggestions.",
-      type: "error",
-    });
-    setShowModal(false); // Hide modal on failure
-    setIsLoading(false);
-    return;
-  }
-
-  try {
-    const response = await fetch("http://localhost:8000/suggestion", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        tag: report.tags,
-        location: report.location,
-        description: report.description,
-      }),
-    });
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.detail || "Failed to get suggestion");
-    }
-
-    const data = await response.json();
-    setSuggestionText(data.suggestion);
-  } catch (error: any) {
-    setModalInfo({
-      show: true,
-      title: "Error",
-      message: error.message || "Failed to load suggestion.",
-      type: "error",
-    });
-    setSuggestionText("Failed to load suggestion.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // Utility: get status color class
   const getStatusColorClass = (status: string) => {
@@ -433,12 +432,12 @@ export default function ReportsPage() {
         <table className="min-w-full table-auto text-left">
           <thead className="bg-[#0F4C75] text-white">
             <tr>
-              <th className="py-3 px-4">Issue</th>
-              <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4">Location</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Date</th>
-              <th className="py-3 px-4">Actions</th>
+              <th className="text-center align-middle py-3 px-4">Issue</th>
+              <th className="text-center align-middle py-3 px-4">Location</th>
+              <th className="text-center align-middle py-3 px-4">Category</th>
+              <th className="text-center align-middle py-3 px-4">Date</th>
+              <th className="text-center align-middle py-3 px-4">Status</th>
+              <th className="text-center align-middle py-3 px-4">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -450,7 +449,8 @@ export default function ReportsPage() {
                   key={report._id}
                   className="border-b last:border-b-0 text-center align-middle"
                 >
-                  <td className="py-3 px-4">
+                  {/* Issue (Image) */}
+                  <td className="py-3 px-4 text-center">
                     {report.image_url ? (
                       <img
                         src={report.image_url}
@@ -463,15 +463,25 @@ export default function ReportsPage() {
                     )}
                   </td>
 
-                  <td className="py-3 px-4 align-middle">{report.tags}</td>
-                  <td className="py-3 px-4 align-middle">
+                  {/* Location */}
+                  <td className="py-3 px-4 text-center">
                     <div className="flex items-center gap-1 justify-center">
-                      <MapPin className="h-4 w-4 text-blue-500" />
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          report.location
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </a>
                       {report.location}
                     </div>
                   </td>
 
-                  <td className="py-3 px-4">
+                  {/* Category */}
+                  <td className="py-3 px-4 text-center">
                     <span
                       className={`inline-block px-3 py-1 rounded-full font-semibold text-sm ${getStatusColorClass(
                         currentStatus
@@ -481,10 +491,14 @@ export default function ReportsPage() {
                         currentStatus.slice(1)}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+
+                  {/* Date */}
+                  <td className="py-3 px-4 text-center">
                     {new Date(report.reported_at).toLocaleDateString("en-GB")}
                   </td>
-                  <td className="py-3 px-4">
+
+                  {/* Status Dropdown and Save Button */}
+                  <td className="py-3 px-4 text-center">
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                       <select
                         className="border border-gray-300 rounded px-2 py-1"
@@ -506,10 +520,15 @@ export default function ReportsPage() {
                           Save
                         </button>
                       )}
+                    </div>
+                  </td>
 
+                  {/* Suggest Button */}
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex justify-center">
                       <button
                         onClick={() => handleSuggest(report)}
-                        className="mt-2 px-4 py-2 bg-[#0F4C75] text-white rounded-lg shadow hover:bg-teal-700 transition duration-200"
+                        className="px-4 py-2 bg-[#0F4C75] text-white rounded-lg shadow hover:bg-teal-700 transition duration-200"
                       >
                         Suggest
                       </button>
@@ -605,7 +624,7 @@ export default function ReportsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm">
           <div className="relative">
             <button
-              className="absolute top-2 right-2 text-white text-3xl font-bold"
+              className="absolute top-2 right-2 text-white bg-black cursor-pointer bg-opacity-60 rounded-full w-8 h-8 flex items-center justify-center z-50"
               onClick={() => setModalImage(null)}
             >
               ×
