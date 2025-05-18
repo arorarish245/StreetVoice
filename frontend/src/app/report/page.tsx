@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getSession } from 'next-auth/react';
+import { getSession } from "next-auth/react";
 
 export default function ReportIssue() {
   const [formData, setFormData] = useState<{
@@ -73,74 +73,72 @@ export default function ReportIssue() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setStatus(null);
+    e.preventDefault();
+    setIsSubmitting(true);
+    setStatus(null);
 
-  let token = null;
+    let token = null;
 
-  // For email/password login (from cookies)
-  if (typeof document !== "undefined") {
-    token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("access_token="))
-      ?.split("=")[1];
-  }
-
-  // For Google login (from NextAuth session)
-  if (!token) {
-    const session = await getSession();  
-    if (session?.idToken) {
-      token = session.idToken;  
+    // For email/password login (from cookies)
+    if (typeof document !== "undefined") {
+      token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
     }
-  }
 
-  // If no token is found, handle the case accordingly (e.g., show an error or redirect to login)
-  if (!token) {
-    setStatus("You are not authenticated. Please log in.");
-    setIsSubmitting(false);
-    return;
-  }
+    // For Google login (from NextAuth session)
+    if (!token) {
+      const session = await getSession();
+      if (session?.idToken) {
+        token = session.idToken;
+      }
+    }
 
-  const formDataToSend = new FormData();
+    // If no token is found, handle the case accordingly (e.g., show an error or redirect to login)
+    if (!token) {
+      setStatus("You are not authenticated. Please log in.");
+      setIsSubmitting(false);
+      return;
+    }
 
-  if (formData.image) {
-    formDataToSend.append("image", formData.image);
-  }
+    const formDataToSend = new FormData();
 
-  formDataToSend.append("location", formData.location);
-  formDataToSend.append("description", formData.description);
-  formDataToSend.append("tags", formData.tags);
+    if (formData.image) {
+      formDataToSend.append("image", formData.image);
+    }
 
-  try {
-    const response = await fetch("http://localhost:8000/report-issue", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`, // Sending the token here (whether from email/password or Google)
-      },
-      body: formDataToSend,
-    });
+    formDataToSend.append("location", formData.location);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("tags", formData.tags);
 
-    if (response.ok) {
-      setStatus("Your issue has been reported!");
-      setFormData({
-        image: null,
-        location: "",
-        description: "",
-        tags: "",
+    try {
+      const response = await fetch("http://localhost:8000/report-issue", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`, // Sending the token here (whether from email/password or Google)
+        },
+        body: formDataToSend,
       });
-    } else {
+
+      if (response.ok) {
+        setStatus("Your issue has been reported!");
+        setFormData({
+          image: null,
+          location: "",
+          description: "",
+          tags: "",
+        });
+      } else {
+        setStatus("Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error occurred during report submission:", error);
       setStatus("Something went wrong. Please try again.");
     }
-  } catch (error) {
-    console.error("Error occurred during report submission:", error);
-    setStatus("Something went wrong. Please try again.");
-  }
 
-  setIsSubmitting(false);
-};
-
-
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#BBE1FA] py-12 px-6">
@@ -233,11 +231,55 @@ export default function ReportIssue() {
               required
             >
               <option value="">Select a category</option>
-              <option value="Garbage">Garbage</option>
-              <option value="Road">Road</option>
-              <option value="Electricity">Electricity</option>
-              <option value="Water">Water</option>
-              <option value="Sanitation">Sanitation</option>
+              <option value="Water Leakage / Issues">
+                Water Leakage / Issues
+              </option>
+              <option value="Electricity Problem">Electricity Problem</option>
+              <option value="Road Damage / Potholes">
+                Road Damage / Potholes
+              </option>
+              <option value="Garbage / Waste">Garbage / Waste</option>
+              <option value="Street Lights">Street Lights</option>
+              <option value="Sewer / Drainage Issues">
+                Sewer / Drainage Issues
+              </option>
+              <option value="Tree Fall / Greenery">Tree Fall / Greenery</option>
+              <option value="Noise Complaint">Noise Complaint</option>
+              <option value="Encroachment">Encroachment</option>
+              <option value="Public Safety">Public Safety</option>
+              <option value="Construction Debris">Construction Debris</option>
+              <option value="Traffic Light Issue">Traffic Light Issue</option>
+              <option value="Illegal Parking">Illegal Parking</option>
+              <option value="Stray Animals">Stray Animals</option>
+              <option value="Water Tanker Request">Water Tanker Request</option>
+              <option value="Fogging / Mosquito Issue">
+                Fogging / Mosquito Issue
+              </option>
+              <option value="Broken Public Bench / Property">
+                Broken Public Bench / Property
+              </option>
+              <option value="Public Toilet Unclean">
+                Public Toilet Unclean
+              </option>
+              <option value="Air Pollution">Air Pollution</option>
+              <option value="Noise Pollution (Religious/Events)">
+                Noise Pollution (Religious/Events)
+              </option>
+              <option value="Construction Without Permit">
+                Construction Without Permit
+              </option>
+              <option value="Missing Manhole Cover">
+                Missing Manhole Cover
+              </option>
+              <option value="Slum/Unplanned Construction">
+                Slum/Unplanned Construction
+              </option>
+              <option value="Overloaded Garbage Bin">
+                Overloaded Garbage Bin
+              </option>
+              <option value="Street Vendor Obstruction">
+                Street Vendor Obstruction
+              </option>
             </select>
           </div>
 

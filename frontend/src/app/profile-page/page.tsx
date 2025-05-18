@@ -4,11 +4,31 @@ import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
 
 const departments = [
-  "Sanitation",
-  "Roadworks",
-  "Water Supply",
-  "Electricity",
-  "Other",
+  "Water Supply Department",
+  "Electricity Department",
+  "Public Works Department (PWD)",
+  "Sanitation Department",
+  "Municipal Electrical Department",
+  "Drainage Department / Jal Nigam",
+  "Horticulture Department",
+  "Pollution Control Board / Police",
+  "Municipal Enforcement Department",
+  "Police Department",
+  "Urban Planning or PWD",
+  "Traffic Control Department",
+  "Traffic Police Department",
+  "Animal Control Department / Municipal Corp",
+  "Water Supply / Jal Board",
+  "Health Department / Municipal Health Wing",
+  "Municipal Maintenance Department",
+  "Sanitation / Urban Hygiene Department",
+  "State Pollution Control Board",
+  "Local Administration / Police",
+  "Urban Planning / Building Dept",
+  "Drainage / Sewer Department",
+  "Slum Clearance Board / Town Planning",
+  "Waste Collection Unit",
+  "Anti-Encroachment Cell",
 ];
 
 export default function ProfileSetup() {

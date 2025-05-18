@@ -18,6 +18,36 @@ client = MongoClient(MONGODB_URI)
 db = client["StreetVoice"]
 issues_collection = db["reported_issues"]
 
+# Add this mapping somewhere near the top of your file (or import it)
+category_to_department = {
+    "Water Leakage / Issues": "Water Supply Department",
+    "Electricity Problem": "Electricity Department",
+    "Road Damage / Potholes": "Public Works Department (PWD)",
+    "Garbage / Waste": "Sanitation Department",
+    "Street Lights": "Municipal Electrical Department",
+    "Sewer / Drainage Issues": "Drainage Department / Jal Nigam",
+    "Tree Fall / Greenery": "Horticulture Department",
+    "Noise Complaint": "Pollution Control Board / Police",
+    "Encroachment": "Municipal Enforcement Department",
+    "Public Safety": "Police Department",
+    "Construction Debris": "Urban Planning or PWD",
+    "Traffic Light Issue": "Traffic Control Department",
+    "Illegal Parking": "Traffic Police Department",
+    "Stray Animals": "Animal Control Department / Municipal Corp",
+    "Water Tanker Request": "Water Supply / Jal Board",
+    "Fogging / Mosquito Issue": "Health Department / Municipal Health Wing",
+    "Broken Public Bench / Property": "Municipal Maintenance Department",
+    "Public Toilet Unclean": "Sanitation / Urban Hygiene Department",
+    "Air Pollution": "State Pollution Control Board",
+    "Noise Pollution (Religious/Events)": "Local Administration + Police",
+    "Construction Without Permit": "Urban Planning / Building Dept.",
+    "Missing Manhole Cover": "Drainage / Sewer Department",
+    "Slum/Unplanned Construction": "Slum Clearance Board / Town Planning",
+    "Overloaded Garbage Bin": "Waste Collection Unit",
+    "Street Vendor Obstruction": "Anti-Encroachment Cell"
+}
+
+
 # Function to compress image
 def compress_image(upload_file: UploadFile, quality: int = 70):
     image = Image.open(upload_file.file)
@@ -194,23 +224,37 @@ def get_all_reports(
 def update_report_status(
     report_id: str,
     new_status: str = Body(..., embed=True),
-    current_user_email: str = Depends(get_current_user_email)
+    current_user: dict = Depends(get_current_user)  # changed from email to full user info
 ):
     try:
-        # print(f"Received report_id: {report_id}")
-        # print(f"Current user email: {current_user_email}")
         obj_id = ObjectId(report_id)
-        # print(f"Converted to ObjectId: {obj_id}")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid report ID format")
 
-    # Find the report without checking user_id (admin access)
-    report = issues_collection.find_one({"_id": obj_id})
-    # print(f"Found report: {report}")
+    # Check if admin
+    if current_user.get("role") != "Admin":
+        raise HTTPException(status_code=403, detail="Only admins can update report status")
 
+    # Fetch the report
+    report = issues_collection.find_one({"_id": obj_id})
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
+    # Get category and responsible department
+    category = report.get("tags")  # You use 'tags' field for category?
+    # If you actually store category separately, replace 'tags' with 'category'
+    if not category:
+        raise HTTPException(status_code=400, detail="Report category not found")
+
+    responsible_dept = category_to_department.get(category)
+    if not responsible_dept:
+        raise HTTPException(status_code=400, detail="No responsible department found for this category")
+
+    # Check admin's department match
+    if current_user.get("department") != responsible_dept:
+        raise HTTPException(status_code=403, detail="You are not authorized to update reports of this category")
+
+    # Update status
     update_result = issues_collection.update_one(
         {"_id": obj_id},
         {"$set": {"status": new_status}}

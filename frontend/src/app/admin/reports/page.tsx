@@ -156,50 +156,70 @@ export default function ReportsPage() {
 
   // NEW: Save button handler to update status on server
   const handleSaveStatus = async (reportId: string) => {
-    const newStatus = updatedStatuses[reportId];
-    if (!newStatus) return;
+  const newStatus = updatedStatuses[reportId];
+  if (!newStatus) return;
 
-    let token = null;
-    if (typeof document !== "undefined") {
-      token = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("access_token="))
-        ?.split("=")[1];
+  let token = null;
+  if (typeof document !== "undefined") {
+    token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("access_token="))
+      ?.split("=")[1];
+  }
+  if (!token) {
+    const session = await getSession();
+    if (session?.idToken) {
+      token = session.idToken;
     }
-    if (!token) {
-      const session = await getSession();
-      if (session?.idToken) {
-        token = session.idToken;
+  }
+  if (!token) {
+    alert("You must be logged in to update status");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:8000/update-report-status/${reportId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ new_status: newStatus }),
       }
-    }
-    try {
-      const res = await fetch(
-        `http://localhost:8000/update-report-status/${reportId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ new_status: newStatus }), // <-- changed here
-        }
-      );
-      if (!res.ok) throw new Error("Failed to update status");
+    );
 
-      setReports((prev) =>
-        prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
-      );
+    const data = await res.json();
 
-      setUpdatedStatuses((prev) => {
-        const copy = { ...prev };
-        delete copy[reportId];
-        return copy;
-      });
-      alert("Status updated successfully");
-    } catch (error) {
-      alert("Failed to update status");
+    if (!res.ok) {
+      // If backend sends 403 for unauthorized dept
+      if (res.status === 403) {
+        alert(data.detail || "You are not authorized to update reports of this category");
+      } else {
+        alert(data.detail || "Failed to update status");
+      }
+      return;
     }
-  };
+
+    // Update local state with new status
+    setReports((prev) =>
+      prev.map((r) => (r._id === reportId ? { ...r, status: newStatus } : r))
+    );
+
+    // Clear the updated status for that report
+    setUpdatedStatuses((prev) => {
+      const copy = { ...prev };
+      delete copy[reportId];
+      return copy;
+    });
+
+    alert(data.message || "Status updated successfully");
+  } catch (error) {
+    alert("Failed to update status");
+  }
+};
+
 
   // NEW: Suggest button handler placeholder
   const handleSuggest = async (report: Report) => {
